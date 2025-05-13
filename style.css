@@ -1,0 +1,86 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f9;
+  color: #333;
+}
+
+
+#container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+
+#toolbar {
+  background-color: #6200ea;
+  color: white;
+  padding: 10px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  border-bottom: 2px solid #3700b3;
+}
+
+
+#canvas-container {
+  flex: 1; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+#canvas {
+  background-color: white;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+#toolbar button {
+    background-color: white;
+    color: #6200ea;
+    border: none;
+    padding: 8px 16px;
+    margin: 0 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#toolbar button:hover {
+    background-color: #ddd;
+}
+
+#main {
+  display: flex;
+  flex: 1; 
+  overflow: hidden;
+}
+
+#sidebar {
+  width: 180px;
+  background-color: #eeeeff;
+  border-right: 1px solid #ccc;
+  padding: 10px;
+  box-shadow: inset -1px 0 2px rgba(0, 0, 0, 0.05);
+}
+
+.node {
+  background-color: #fff;
+  border: 1px solid #6200ea;
+  color: #6200ea;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 10px;
+  text-align: center;
+  cursor: grab;
+  font-weight: bold;
+}
+
+.node:hover {
+  background-color: #f0f0ff;
+}
