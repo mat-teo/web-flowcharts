@@ -9,19 +9,56 @@
     <body>
         <div id="container">
             <div id="toolbar">
-                <button>Nuovo</button>
-                <button>Apri</button>
-                <button>Salva</button>
-                <button>Esporta Python</button>
+                <button>New</button>
+                <button>Open</button>
+                <button>Save</button>
+                <button>Run</button>
             </div>
             <div id="main">
                 <div id="sidebar">
-                    <div class="node">Inizio</div>
-                    <div class="node">Input</div>
-                    <div class="node">Output</div>
-                    <div class="node">Condizione</div>
-                    <div class="node">Assegnazione</div>
-                    <div class="node">Fine</div>
+                    <label for="sidebar" id="variabiliLabel">VARIABLE</label>
+                    <div id="tableContainer">
+                        <table>
+                        <tr> 
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Value</th>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input class="inputVariable" type ="text">
+                            </td>
+                            <td>
+                                <select class="inputVariable">
+                                    <option value="i">Integer</option>
+                                    <option value="r">Real</option>
+                                    <option value="s">String</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input class="inputVariable" type ="text">
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>
+                                <input class="inputVariable" type ="text">
+                            </td>
+                            <td>
+                                <select class="inputVariable">
+                                    <option value="i">Integer</option>
+                                    <option value="r">Real</option>
+                                    <option value="s">String</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input class="inputVariable" type ="text">
+                            </td>
+                        </tr>
+
+                    </table>
+                    </div>
+                    
                 </div>
                 
                 <div id="canvas-container">

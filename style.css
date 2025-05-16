@@ -7,80 +7,104 @@ html, body {
   color: #333;
 }
 
-
 #container {
   display: flex;
   flex-direction: column;
   height: 100vh;
 }
 
-
 #toolbar {
   background-color: #6200ea;
   color: white;
-  padding: 10px;
+  padding: 0.8vw;
   text-align: center;
-  font-size: 18px;
+  font-size: 1.5vw;
   font-weight: bold;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  border-bottom: 2px solid #3700b3;
+  box-shadow: 0 0.15vw 0.4vw rgba(0, 0, 0, 0.2);
+  border-bottom: 0.15vw solid #3700b3;
 }
 
-
-#canvas-container {
-  flex: 1; 
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-
-#canvas {
-  background-color: white;
-  border: 1px solid #ccc;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
 #toolbar button {
-    background-color: white;
-    color: #6200ea;
-    border: none;
-    padding: 8px 16px;
-    margin: 0 5px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
+  background-color: white;
+  color: #6200ea;
+  border: none;
+  padding: 0.6vw 1.3vw;
+  margin: 0 0.4vw;
+  border-radius: 0.4vw;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 #toolbar button:hover {
-    background-color: #ddd;
+  background-color: #ddd;
 }
 
 #main {
   display: flex;
-  flex: 1; 
+  flex: 1;
   overflow: hidden;
 }
 
 #sidebar {
-  width: 180px;
+  width: 20vw;
   background-color: #eeeeff;
-  border-right: 1px solid #ccc;
-  padding: 10px;
-  box-shadow: inset -1px 0 2px rgba(0, 0, 0, 0.05);
+  border-right: 0.08vw solid #ccc;
+  padding: 0.8vw;
+  box-shadow: inset -0.08vw 0 0.16vw rgba(0, 0, 0, 0.05);
 }
 
-.node {
+#variabiliLabel {
   background-color: #fff;
-  border: 1px solid #6200ea;
+  border: 0.08vw solid #6200ea;
   color: #6200ea;
-  border-radius: 4px;
-  padding: 8px;
-  margin-bottom: 10px;
+  border-radius: 0.3vw;
+  padding: 0.4vw;
+  margin-bottom: 0.8vw;
   text-align: center;
   cursor: grab;
   font-weight: bold;
+  font-size: 3vw;
+  width: 100%;
 }
 
-.node:hover {
-  background-color: #f0f0ff;
+#tableContainer {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;  /* celle attaccate */
+  border-spacing: 0;         /* nessuno spazio tra celle */
+  width: 100%;
+}
+
+th, td {
+  padding: 0;                /* zero padding per toccare */
+  margin: 0;
+  box-sizing: border-box;
+  border: 0.08vw solid #ccc; /* bordo sottile uniforme */
+}
+
+th {
+  background-color: #fff;
+  border: 0.18vw solid #6200ea;
+  color: #6200ea;
+  border-radius: 0.3vw;
+  font-weight: bold;
+  font-size: 2vw;
+  text-align: center;
+}
+
+tr {
+  /* altezza automatica secondo contenuto */
+}
+
+.inputVariable {
+  background-color: #fff;
+  border: none;
+  font-size: 1vw;
+  width: 100%;               /* tutta la larghezza della cella */
+  height: 100%;              /* tutta l'altezza della cella */
+  box-sizing: border-box;    /* include bordo e padding */
+  padding: 0.4vw;            /* opzionale per comodità di input */
 }
