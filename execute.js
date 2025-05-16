@@ -30,11 +30,11 @@ function executeFlow(json){
     while(currentNode != null){
         const node = json.nodes[currentNode];
         switch(node.type){
-            case "start":
+            case "start":       // START NODE
                 console.log("Start\n");
                 currentNode = node.next;
                 break;
-            case "print":
+            case "print": // PRINT NODE
                 string="";
                 parts = splitStrings(node.info);
                 for(i=0;i<parts.length;i++){  
@@ -75,8 +75,8 @@ function executeFlow(json){
                 }
                 console.log("Print: " + string);
                 currentNode = node.next;
-                break;
-              case "if":
+                break; 
+              case "if": // IF NODE
                 let condition = node.info;
                 let expression = "";
                 console.log("If: " + condition);
@@ -117,12 +117,27 @@ function executeFlow(json){
                 }
                 break;
 
-              case "input":
+              case "input": //INPUT NODE
                 console.log("Input: " + node.info);
                 variables[node.info].value = inputVariable(node.info, variables[node.info].type);
                 currentNode = node.next;  
                 break;
-              case "end":
+
+              case "assign": // ASSIGN NODE
+                console.log("Assign: " + node.info);
+                let assignParts = node.info.split("=");
+                let varName = assignParts[0].trim();
+                let exp = assignParts[1].trim();
+
+                Object.keys(variables).forEach(v => {
+                  exp = exp.replaceAll(v, variables[v].value.toString());
+                });
+
+                variables[varName].value = eval(exp);
+                currentNode = node.next;
+                break;
+
+              case "end": // END NODE
                 console.log("End\n");
                 currentNode = node.next;
                 break;
