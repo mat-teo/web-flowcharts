@@ -91,7 +91,7 @@ function executeFlow(json){
                         }
                         continue;
                     } 
-                    if (!isNaN(condition[j]) || "+-*/<>=".includes(condition[j])) {
+                    if (!isNaN(condition[j]) || "+-*/<>=.()".includes(condition[j])) {
                         if(isVar){
                           isVar=false;
                           expression += variables[variable].value.toString();
