@@ -116,46 +116,87 @@ function lettereENumeri(str) {
     return /^[a-zA-Z0-9]+$/.test(str) && /[a-zA-Z]/.test(str);
 }
 
-function aggiungiVaribile(){
-  let nRighe=tabVariabili.rows.length;
-  let cella1= tabVariabili.rows[nRighe-1].cells[0];
-  let cella2= tabVariabili.rows[nRighe-1].cells[1];
-  let cella3= tabVariabili.rows[nRighe-1].cells[2];
-  let f=false;
+function aggiungiVaribile(event) {
+  // trova la riga su cui è stato attivato l'evento
+  let target = event.target;
+  // risali fino alla riga (tr)
+  while (target && target.tagName !== "TR") {
+    target = target.parentElement;
+  }
+  if (!target) return;
+
+  // aggiungi la riga solo se la riga modificata è l'ultima della tabella
+  let isUltimaRiga = (target.rowIndex === tabVariabili.rows.length - 1);
+
+  let cella1 = target.cells[0];
+  let cella2 = target.cells[1];
+  let cella3 = target.cells[2];
+  let f = false;
   let valore;
   let tipo = cella2.querySelector("select").value;
-  if(cella1.querySelector("input").value!="" && lettereENumeri(cella1.querySelector("input").value) ){
-    
-    switch (tipo){
+  let val1 = cella1.querySelector("input").value;
+  let val3 = cella3.querySelector("input").value;
+
+  // reset colori prima di ogni validazione
+  cella1.style.backgroundColor = "white";
+  cella2.style.backgroundColor = "white";
+  cella3.style.backgroundColor = "white";
+
+  // controllo: se NON è l'ultima riga e tutte le celle sono vuote, elimina la riga
+  if (!isUltimaRiga && val1 === "" && val3 === "") {
+    tabVariabili.deleteRow(target.rowIndex);
+    return;
+  }
+
+  // controlla se tutte le celle sono piene
+  if (val1 === "" || val3 === "") {
+    return;
+  }
+
+  // controlla se il valore della prima cella è valido
+  if (lettereENumeri(val1)) {
+    switch (tipo) {
       case "i":
-        if(!isNaN(parseInt(cella3.querySelector("input").value))){
-          f=true;
-          valore=parseInt(cella3.querySelector("input").value);
+        if (!isNaN(parseInt(val3))) {
+          f = true;
+          valore = parseInt(val3);
         }
         break;
       case "r":
-        if(!isNaN(parseFloat(cella3.querySelector("input").value))){
-          f=true;
-          valore=parseFloat(cella3.querySelector("input").value);
+        if (!isNaN(parseFloat(val3))) {
+          f = true;
+          valore = parseFloat(val3);
         }
         break;
       case "s":
-        if(cella3.querySelector("input").value!=""){
-          f=true;
-          valore=cella3.querySelector("input").value;
+        if (val3 !== "") {
+          f = true;
+          valore = val3;
         }
         break;
     }
   }
-  if(f){
-    let riga = { //salvo qui le variabili -> per artifoni: mettere in json
-      name: cella1.querySelector("input").value,
+
+  // se i dati sono corretti, resetta i colori e aggiungi la riga
+  if (f) {
+    if (target.getAttribute("data-inserita") === "1") return;
+    target.setAttribute("data-inserita", "1");
+    cella1.style.backgroundColor = "white";
+    cella2.style.backgroundColor = "white";
+    cella3.style.backgroundColor = "white";
+    let riga = {
+      name: val1,
       type: tipo,
       value: valore,
     }
-    rigaTabella.push(riga);
-    inserisciRiga();
-  }else{
+    if(isUltimaRiga){
+      rigaTabella.push(riga);
+      inserisciRiga();
+    }
+    let nuovaRiga = tabVariabili.rows[tabVariabili.rows.length - 1];
+    nuovaRiga.addEventListener("change", aggiungiVaribile);
+  } else {
+    // evidenzia tutte le celle di rosso se errore di validazione
     cella1.style.backgroundColor = "red";
     cella2.style.backgroundColor = "red";
     cella3.style.backgroundColor = "red";
@@ -218,6 +259,22 @@ window.onload = function (){
   })
   draw(nodi);
   canvas.addEventListener("click",aggiungiNodo);
-  tabVariabili.addEventListener("change",aggiungiVaribile);
-
+  let ultimaRiga = tabVariabili.rows[tabVariabili.rows.length - 1];
+  if (ultimaRiga) {
+    ultimaRiga.addEventListener("change", aggiungiVaribile);
+  }
+  // svuota il contenuto della cella 1 e 3 della riga 1 (indice 1)
+  if (tabVariabili.rows.length > 0) {
+    let primaRiga = tabVariabili.rows[1];
+    if (primaRiga.cells.length >= 3) {
+      let cella1Input = primaRiga.cells[0].querySelector("input");
+      let cella3Input = primaRiga.cells[2].querySelector("input");
+      if (cella1Input) {
+        cella1Input.value = "";
+      }
+      if (cella3Input) {
+        cella3Input.value = "";
+      }
+    }
+  }
 }
