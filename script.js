@@ -19,6 +19,10 @@ let tabVariabili=document.getElementById("tabVariabili");
 
 let rigaTabella = [];
 
+function chiudiPopup(){
+  document.getElementById("popup-window").classList.remove("active");
+}
+
 function resizeCanvas() {
     canvas.width = window.innerWidth - 10;
     canvas.height = window.innerHeight - 10;
@@ -32,7 +36,7 @@ function resizeCanvas() {
 
 function draw(forme) {
   ctx.clearRect(0, 0, w, h);
-
+  frecce = []
   for (let i = 0; i < forme.length; i++) {
     const node = forme[i];
 
@@ -96,6 +100,7 @@ function aggiungiNodo(event) {
     const freccia = frecce[i];
     if (isPointNearLine(clickX, clickY, freccia.inzioX, freccia.inzioY, freccia.fineX, freccia.fineY, 8)) {
       console.log("Hai cliccato la freccia", freccia.id);
+      document.getElementById("popup-window").classList.add("active");
       return;
     }
   }
@@ -187,8 +192,8 @@ function aggiungiVaribile(event) {
 
   // se i dati sono corretti, resetta i colori e aggiungi la riga
   if (f) {
-    if (target.getAttribute("data-inserita") === "1") return;
-    target.setAttribute("data-inserita", "1");
+    if (target.getAttribute("data-inserito") === "1") return;
+    target.setAttribute("data-inserito", "1");
     let riga = {
       name: val1,
       type: tipo,
@@ -206,9 +211,6 @@ function aggiungiVaribile(event) {
     let errorCell = errorRow.insertCell();
     errorCell.colSpan = 3;
     errorCell.className = "error-message";
-    errorCell.style.color = "red";
-    errorCell.style.fontSize = "12px";
-    errorCell.style.padding = "2px 0";
     errorCell.textContent = "Dati non validi. "+ errMsg;
     // rimuovi il messaggio se la riga viene modificata di nuovo
     let removeError = () => {
