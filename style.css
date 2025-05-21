@@ -5,7 +5,9 @@ html, body {
   font-family: Arial, sans-serif;
   background-color: #f4f4f9;
   color: #333;
+  box-sizing: border-box;
 }
+
 
 #container {
   display: flex;
@@ -16,9 +18,9 @@ html, body {
 #toolbar {
   background-color: #6200ea;
   color: white;
-  padding: 0.8vw;
+  padding: 0.8vw; 
   text-align: center;
-  font-size: 1.5vw;
+  font-size: 1.5vw; 
   font-weight: bold;
   box-shadow: 0 0.15vw 0.4vw rgba(0, 0, 0, 0.2);
   border-bottom: 0.15vw solid #3700b3;
@@ -28,11 +30,14 @@ html, body {
   background-color: white;
   color: #6200ea;
   border: none;
-  padding: 0.6vw 1.3vw;
-  margin: 0 0.4vw;
-  border-radius: 0.4vw;
+
+  padding: 0.5rem 1rem; 
+  margin: 0 0.25rem;  
+  border-radius: 0.25rem; 
   cursor: pointer;
   font-weight: bold;
+ 
+  font-size: 0.9rem;
 }
 
 #toolbar button:hover {
@@ -47,64 +52,69 @@ html, body {
 
 #sidebar {
   width: 20vw;
+  min-width: 280px; 
   background-color: #eeeeff;
-  border-right: 0.08vw solid #ccc;
-  padding: 0.8vw;
-  box-shadow: inset -0.08vw 0 0.16vw rgba(0, 0, 0, 0.05);
+  border-right: 1px solid #ccc;
+  padding: 0.8rem; 
+  box-shadow: inset -1px 0 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
 }
 
 #variabiliLabel {
   background-color: #fff;
-  border: 0.08vw solid #6200ea;
+  border: 1px solid #6200ea; 
   color: #6200ea;
-  border-radius: 0.3vw;
-  padding: 0.4vw;
-  margin-bottom: 0.8vw;
+  border-radius: 0.3rem;
+  padding: .4rem; 
+  margin-bottom: 0.8rem;
   text-align: center;
   cursor: grab;
   font-weight: bold;
-  font-size: 3vw;
+
+  font-size: clamp(1rem, 0.5rem + 1.2vw, 1.5rem);
   width: 100%;
+  display: block;
 }
 
 #tableContainer {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: auto; 
 }
 
 table {
-  border-collapse: collapse;  /* celle attaccate */
-  border-spacing: 0;         /* nessuno spazio tra celle */
   width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; 
 }
 
 th, td {
-  padding: 0;                /* zero padding per toccare */
-  margin: 0;
-  box-sizing: border-box;
-  border: 0.08vw solid #ccc; /* bordo sottile uniforme */
+  border: 1px solid #ccc; 
+  text-align: center;
+  width: 33.333%;
+  padding: 0;
 }
 
 th {
   background-color: #fff;
-  border: 0.18vw solid #6200ea;
+  border-color: #6200ea; 
+
   color: #6200ea;
-  border-radius: 0.3vw;
   font-weight: bold;
-  font-size: 2vw;
-  text-align: center;
+  font-size: clamp(0.85rem, 0.4rem + 0.8vw, 1.1rem); 
+  padding: 0.4rem 0;
 }
 
-tr {
-  /* altezza automatica secondo contenuto */
-}
 
 .inputVariable {
   background-color: #fff;
   border: none;
-  font-size: 1vw;
-  width: 100%;               /* tutta la larghezza della cella */
-  height: 100%;              /* tutta l'altezza della cella */
-  box-sizing: border-box;    /* include bordo e padding */
-  padding: 0.4vw;            /* opzionale per comodità di input */
+  font-size: clamp(0.8rem, 0.3rem + 0.7vw, 1rem);
+  width: 100%;
+  height: 100%; 
+  box-sizing: border-box;
+  padding: 0.5rem; 
+  display: block;
+  text-align: left;
+  min-height: 2.4rem;
 }
