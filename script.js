@@ -112,8 +112,9 @@ function isPointNearLine(clickX, clickY, x1, y1, x2, y2, distanza) {
     return f;
 }
 
+// Una variabile deve iniziare con una lettera e contenere solo lettere e numeri
 function lettereENumeri(str) {
-    return /^[a-zA-Z0-9]+$/.test(str) && /[a-zA-Z]/.test(str);
+    return /^[a-zA-Z][a-zA-Z0-9]*$/.test(str);
 }
 
 function aggiungiVaribile(event) {
@@ -137,10 +138,9 @@ function aggiungiVaribile(event) {
   let val1 = cella1.querySelector("input").value;
   let val3 = cella3.querySelector("input").value;
 
-  // reset colori prima di ogni validazione
-  cella1.style.backgroundColor = "white";
-  cella2.style.backgroundColor = "white";
-  cella3.style.backgroundColor = "white";
+  // rimuovi eventuali messaggi di errore precedenti
+  let oldError = target.querySelector(".error-message");
+  if (oldError) oldError.remove();
 
   // controllo: se NON è l'ultima riga e tutte le celle sono vuote, elimina la riga
   if (!isUltimaRiga && val1 === "" && val3 === "") {
@@ -152,38 +152,43 @@ function aggiungiVaribile(event) {
   if (val1 === "" || val3 === "") {
     return;
   }
-
+  let errMsg = "";
   // controlla se il valore della prima cella è valido
   if (lettereENumeri(val1)) {
     switch (tipo) {
       case "i":
-        if (!isNaN(parseInt(val3))) {
+        if (/^-?\d+$/.test(val3)) {
           f = true;
           valore = parseInt(val3);
+        } else {
+          errMsg = "Il valore deve essere un intero valido.";
         }
         break;
       case "r":
-        if (!isNaN(parseFloat(val3))) {
+        if (/^-?\d*\.\d+$/.test(val3) || /^-?\d+\.\d*$/.test(val3)) {
           f = true;
           valore = parseFloat(val3);
+        } else {
+          errMsg = "Il valore deve essere un numero decimale valido.";
         }
         break;
       case "s":
         if (val3 !== "") {
           f = true;
           valore = val3;
+        } else {
+          errMsg = "Il valore stringa non può essere vuoto.";
         }
         break;
     }
+  }else{
+    errMsg = "Il nome della variabile deve iniziare con una lettera e contenere solo lettere (a-z, A-Z) e numeri (0-9).";
   }
 
   // se i dati sono corretti, resetta i colori e aggiungi la riga
   if (f) {
     if (target.getAttribute("data-inserita") === "1") return;
     target.setAttribute("data-inserita", "1");
-    cella1.style.backgroundColor = "white";
-    cella2.style.backgroundColor = "white";
-    cella3.style.backgroundColor = "white";
     let riga = {
       name: val1,
       type: tipo,
@@ -196,10 +201,21 @@ function aggiungiVaribile(event) {
     let nuovaRiga = tabVariabili.rows[tabVariabili.rows.length - 1];
     nuovaRiga.addEventListener("change", aggiungiVaribile);
   } else {
-    // evidenzia tutte le celle di rosso se errore di validazione
-    cella1.style.backgroundColor = "red";
-    cella2.style.backgroundColor = "red";
-    cella3.style.backgroundColor = "red";
+    // mostra un messaggio di errore in una nuova riga subito sotto quella corrente
+    let errorRow = tabVariabili.insertRow(target.rowIndex + 1);
+    let errorCell = errorRow.insertCell();
+    errorCell.colSpan = 3;
+    errorCell.className = "error-message";
+    errorCell.style.color = "red";
+    errorCell.style.fontSize = "12px";
+    errorCell.style.padding = "2px 0";
+    errorCell.textContent = "Dati non validi. "+ errMsg;
+    // rimuovi il messaggio se la riga viene modificata di nuovo
+    let removeError = () => {
+      if (errorRow.parentNode) errorRow.parentNode.removeChild(errorRow);
+      target.removeEventListener("input", removeError, true);
+    };
+    target.addEventListener("input", removeError, true);
   }
 }
 

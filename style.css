@@ -54,7 +54,7 @@ html, body {
   width: 20vw;
   min-width: 280px; 
   background-color: #eeeeff;
-  border-right: 1px solid #ccc;
+  border-right: 1px solid #000000;
   padding: 0.8rem; 
   box-shadow: inset -1px 0 2px rgba(0, 0, 0, 0.05);
   display: flex;
@@ -89,7 +89,7 @@ table {
 
 th, td {
   background-color: #fff;
-  border: 1px solid #ccc; 
+  border: 1px solid   #000000; 
   text-align: center;
   width: 33.333%;
   padding: 0;
