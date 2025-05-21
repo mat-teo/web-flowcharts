@@ -62,7 +62,6 @@ html, body {
 }
 
 #variabiliLabel {
-  background-color: #fff;
   border: 1px solid #6200ea; 
   color: #6200ea;
   border-radius: 0.3rem;
@@ -71,7 +70,7 @@ html, body {
   text-align: center;
   cursor: grab;
   font-weight: bold;
-
+  background-color: white;
   font-size: clamp(1rem, 0.5rem + 1.2vw, 1.5rem);
   width: 100%;
   display: block;
@@ -89,6 +88,7 @@ table {
 }
 
 th, td {
+  background-color: #fff;
   border: 1px solid #ccc; 
   text-align: center;
   width: 33.333%;
@@ -98,7 +98,6 @@ th, td {
 th {
   background-color: #fff;
   border-color: #6200ea; 
-
   color: #6200ea;
   font-weight: bold;
   font-size: clamp(0.85rem, 0.4rem + 0.8vw, 1.1rem); 
@@ -107,7 +106,7 @@ th {
 
 
 .inputVariable {
-  background-color: #fff;
+  background-color: transparent;
   border: none;
   font-size: clamp(0.8rem, 0.3rem + 0.7vw, 1rem);
   width: 100%;

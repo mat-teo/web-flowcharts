@@ -159,7 +159,6 @@ function aggiungiVaribile(){
     cella1.style.backgroundColor = "red";
     cella2.style.backgroundColor = "red";
     cella3.style.backgroundColor = "red";
-    
   }
 }
 
@@ -177,7 +176,7 @@ function inserisciRiga(){
 
   let option=[
     {value: "i", text: "Integer"},
-    {value: "f", text: "Float"},
+    {value: "r", text: "Float"},
     {value: "s", text: "String"}
   ];
   let selectOptions= [];
