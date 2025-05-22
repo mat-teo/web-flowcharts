@@ -49,16 +49,16 @@
                     <div id="popup-window">
                         <div class="section" id="io-section">
                             <h3>I/O</h3>
-                            <button id="input-btn" class="io-btn">Input</button>
-                            <button id="output-btn" class="io-btn">Output</button>
+                            <button id="input-btn" onclick="inserisciNodo('input')" class="io-btn">Input</button>
+                            <button id="output-btn" onclick="inserisciNodo('print')" class="io-btn">Output</button>
                         </div>
                         <div class="section" id="variables-section">
                             <h3>Variables</h3>
-                            <button id="assign-btn" class="variables-btn">Assign</button>
+                            <button id="assign-btn" onclick="inserisciNodo('assign')" class="variables-btn">Assign</button>
                         </div>
                         <div class="section" id="control-section">
                             <h3>Control</h3>
-                            <button id="if-btn" class="control-btn">If</button>
+                            <button id="if-btn" onclick="inserisciNodo('if')" class="control-btn">If</button>
                         </div>
                         <div class="section" id="loops-section">
                             <h3>Loops</h3>

@@ -9,8 +9,20 @@ canvas.height = container.offsetHeight;
 let w = canvas.width;
 let h = canvas.height;
 
-let dragging = null;
-const MIN_DISTANCE = 150; 
+let flow = {
+  "nodes": [
+    { "type": "start", "info": "", "next": "1" },
+    { "type": "end", "info": "", "next": null }
+  ],
+  "variables": {}
+};
+
+
+
+
+
+
+let frecceSelected = -1;
 
 let nodi = [];
 let frecce = [];
@@ -101,6 +113,7 @@ function aggiungiNodo(event) {
     if (isPointNearLine(clickX, clickY, freccia.inzioX, freccia.inzioY, freccia.fineX, freccia.fineY, 8)) {
       console.log("Hai cliccato la freccia", freccia.id);
       document.getElementById("popup-window").classList.add("active");
+      frecceSelected = freccia.id;
       return;
     }
   }
@@ -294,5 +307,34 @@ window.onload = function (){
         cella3Input.value = "";
       }
     }
+  }
+}
+
+function inserisciNodo(tipo){
+  let nodo = {"type": tipo, "info":"", "next": frecceSelected+2+""}
+  flow.nodes.splice(frecceSelected+1, 0, nodo);
+  for(i=frecceSelected+2; i<flow.nodes.length-1; i++){
+    flow.nodes[i].next = (parseInt(flow.nodes[i].next)+1) + ""
+  }
+  nodi.splice(frecceSelected+1, 0,{
+      relX: 0.35,
+      relY: 0.2,
+      width: 100,
+      height: 40,
+      color: "white",
+      text: tipo
+  })
+  
+  calcoloY(nodi)
+  draw(nodi)
+
+  chiudiPopup() 
+}
+
+function calcoloY(nodi){
+  let start = 0.05
+  for(i=0;i<nodi.length;i++){
+    nodi[i].relY = start
+    start+=0.1
   }
 }
