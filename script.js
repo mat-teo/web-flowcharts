@@ -14,7 +14,7 @@ let flow = {
     { "type": "start", "info": "", "next": "1" },
     { "type": "end", "info": "", "next": null }
   ],
-  "variables": {}
+  "variables": []
 };
 
 
@@ -173,8 +173,9 @@ function aggiungiVaribile(event) {
   let errMsg = "";
   // controlla se il valore della prima cella è valido
   if (lettereENumeri(val1)) {
+    console.log(tipo)
     switch (tipo) {
-      case "i":
+      case "int":
         if (/^-?\d+$/.test(val3)) {
           f = true;
           valore = parseInt(val3);
@@ -182,7 +183,7 @@ function aggiungiVaribile(event) {
           errMsg = "Il valore deve essere un intero valido.";
         }
         break;
-      case "r":
+      case "float":
         if (/^-?\d*\.\d+$/.test(val3) || /^-?\d+\.\d*$/.test(val3)) {
           f = true;
           valore = parseFloat(val3);
@@ -190,7 +191,7 @@ function aggiungiVaribile(event) {
           errMsg = "Il valore deve essere un numero decimale valido.";
         }
         break;
-      case "s":
+      case "string":
         if (val3 !== "") {
           f = true;
           valore = val3;
@@ -205,6 +206,8 @@ function aggiungiVaribile(event) {
 
   // se i dati sono corretti, resetta i colori e aggiungi la riga
   if (f) {
+    let variabile = {"name":val1, "type": tipo, "value": val3}
+    flow.variables.push(variabile)
     if (target.getAttribute("data-inserito") === "1") return;
     target.setAttribute("data-inserito", "1");
     let riga = {
@@ -232,6 +235,7 @@ function aggiungiVaribile(event) {
     };
     target.addEventListener("input", removeError, true);
   }
+  console.log(flow.variables)
 }
 
 function inserisciRiga(){

@@ -18,10 +18,10 @@ this script is used to execute the flow:
     "5": { "type": "print", "info": "'can't divide by 0'", "next": "6" },
     "6": { "type": "end", "info": "", "next": "" }
   },
-    "variables": {
-    "x": {"type": "int", "value": 0},
-    "y": {"type": "int", "value": 0}
-    }
+    "variables": [
+    {"name": "x", type": "int", "value": 0},
+    {"name": "y", "type": "int", "value": 0}
+    ]
 }
 */
 function executeFlow(json){
