@@ -162,6 +162,8 @@ function aggiungiVaribile(event) {
 
   // controllo: se NON è l'ultima riga e tutte le celle sono vuote, elimina la riga
   if (!isUltimaRiga && val1 === "" && val3 === "") {
+    // rimuovi anche da flow.variables
+    flow.variables.splice(target.rowIndex - 1, 1);
     tabVariabili.deleteRow(target.rowIndex);
     return;
   }
@@ -173,7 +175,6 @@ function aggiungiVaribile(event) {
   let errMsg = "";
   // controlla se il valore della prima cella è valido
   if (lettereENumeri(val1)) {
-    console.log(tipo)
     switch (tipo) {
       case "int":
         if (/^-?\d+$/.test(val3)) {
@@ -200,34 +201,43 @@ function aggiungiVaribile(event) {
         }
         break;
     }
-  }else{
+  } else {
     errMsg = "Il nome della variabile deve iniziare con una lettera e contenere solo lettere (a-z, A-Z) e numeri (0-9).";
   }
 
-  // se i dati sono corretti, resetta i colori e aggiungi la riga
+  // se i dati sono corretti, aggiorna o aggiungi la variabile
   if (f) {
-    let variabile = {"name":val1, "type": tipo, "value": val3}
-    flow.variables.push(variabile)
-    if (target.getAttribute("data-inserito") === "1") return;
-    target.setAttribute("data-inserito", "1");
-    let riga = {
-      name: val1,
-      type: tipo,
-      value: valore,
-    }
-    if(isUltimaRiga){
+    if (!isUltimaRiga) {
+      // Modifica una variabile esistente
+      let idx = target.rowIndex - 1;
+      if (flow.variables[idx]) {
+        flow.variables[idx].name = val1;
+        flow.variables[idx].type = tipo;
+        flow.variables[idx].value = val3;
+      }
+    } else {
+      // Aggiungi una nuova variabile solo se non già inserita
+      if (target.getAttribute("data-inserito") === "1") return;
+      target.setAttribute("data-inserito", "1");
+      let variabile = { "name": val1, "type": tipo, "value": val3 };
+      flow.variables.push(variabile);
+      let riga = {
+        name: val1,
+        type: tipo,
+        value: valore,
+      }
       rigaTabella.push(riga);
       inserisciRiga();
+      let nuovaRiga = tabVariabili.rows[tabVariabili.rows.length - 1];
+      nuovaRiga.addEventListener("change", aggiungiVaribile);
     }
-    let nuovaRiga = tabVariabili.rows[tabVariabili.rows.length - 1];
-    nuovaRiga.addEventListener("change", aggiungiVaribile);
   } else {
     // mostra un messaggio di errore in una nuova riga subito sotto quella corrente
     let errorRow = tabVariabili.insertRow(target.rowIndex + 1);
     let errorCell = errorRow.insertCell();
     errorCell.colSpan = 3;
     errorCell.className = "error-message";
-    errorCell.textContent = "Dati non validi. "+ errMsg;
+    errorCell.textContent = "Dati non validi. " + errMsg;
     // rimuovi il messaggio se la riga viene modificata di nuovo
     let removeError = () => {
       if (errorRow.parentNode) errorRow.parentNode.removeChild(errorRow);
@@ -251,9 +261,9 @@ function inserisciRiga(){
   inputCella3.type="text";
 
   let option=[
-    {value: "i", text: "Integer"},
-    {value: "r", text: "Float"},
-    {value: "s", text: "String"}
+    {value: "int", text: "Integer"},
+    {value: "float", text: "Float"},
+    {value: "string", text: "String"}
   ];
   let selectOptions= [];
   let i;
