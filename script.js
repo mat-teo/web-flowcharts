@@ -72,7 +72,14 @@
         ctx.fillStyle    = "black";
         ctx.textAlign    = "center";  // orizzontale
         ctx.textBaseline = "middle";  // verticale
-        ctx.fillText(node.text, cx, cy);
+        let toWrite = node.text
+        if(flow.nodes[i].type != "end" && flow.nodes[i].type != "start"){
+            toWrite+=":\n"+ flow.nodes[i].info;
+            if(flow.nodes[i].info == ""){
+              toWrite+="empty"
+            }
+        }
+        ctx.fillText(toWrite, cx, cy);
       }
     }
     for (let i = 0; i < forme.length-1; i++) {
@@ -138,7 +145,14 @@
 
       if (clickX >= x0 && clickX <= x1 && clickY >= y0 && clickY <= y1) {
         console.log("Hai cliccato il nodo", i);
-        document.getElementById("edit-node-popup").classList.add("active");
+        if(flow.nodes[i].type != "start" && flow.nodes[i].type != "end"){
+          document.getElementById("edit-node-popup").classList.add("active");
+          if(flow.nodes[i].info != ""){
+            document.getElementById("edit-node-input").value = flow.nodes[i].info
+          }else{
+            document.getElementById("edit-node-input").value = "" 
+          }
+        }  
         nodoSelected = i;
         return;
       }
@@ -146,6 +160,12 @@
 
     console.log("Nessun nodo cliccato");
   }
+  function salvaInfo(){
+      flow.nodes[nodoSelected].info = document.getElementById("edit-node-input").value;
+      chiudiEditPopup()
+      draw(nodi)
+  }
+
   function isPointNearLine(clickX, clickY, x1, y1, x2, y2, distanza) {
       let f=false; //Se false nessuan freccia cliccata, se true allora rilevato
       if(clickX <= x1 + distanza && clickX >= x1-distanza){
@@ -381,4 +401,8 @@
 
   function chiudiEditPopup(){
     document.getElementById("edit-node-popup").classList.remove("active");
+  }
+
+  function run(){
+    executeFlow(flow)
   }

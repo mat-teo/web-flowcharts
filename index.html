@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Flogoritm</title>
+        <title>BaseFlow</title>
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
@@ -12,7 +12,7 @@
                 <button>New</button>
                 <button>Open</button>
                 <button>Save</button>
-                <button>Run</button>
+                <button onclick="run()">Run</button>
             </div>
             <div id="main">
                 <div id="sidebar">
@@ -72,7 +72,7 @@
                     <div id="edit-node-popup">
                         <h3>Edit Node</h3>
                         <input type="text" id="edit-node-input" placeholder="Enter node information">
-                        <button id="save-node-info" onclick="">Salva</button>
+                        <button id="save-node-info" onclick="salvaInfo()">Salva</button>
                         <button id="close-edit-popup" onclick="chiudiEditPopup()">Chiudi</button>
                     </div>
                 </div>
@@ -81,5 +81,6 @@
         </div>
         
         <script src="script.js"></script>
+        <script src="execute.js"></script>
     </body>
 </html>

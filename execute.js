@@ -216,21 +216,21 @@ function inputVariable(name,type) {
   const input = prompt(`Enter a value for ${name} (${type}):`);
   if (input !== null) {
     switch (type) {
-      case "Integer":
+      case "int":
         if (isNaN(input)) {
           console.log("Invalid input. Retry.");
           return inputVariable(name, type);
         }
         return parseInt(input);
         break;
-      case "Real":
+      case "float":
         if (isNaN(input)) {
           console.log("Invalid input. Retry.");
           return inputVariable(name, type);
         }
         return parseFloat(input);
         break;
-      case "String":
+      case "string":
         return input;
         break;
     }
