@@ -37,41 +37,58 @@ function executeFlow(json){
             case "print": // PRINT NODE
                 string="";
                 parts = splitStrings(node.info);
-                for(i=0;i<parts.length;i++){  
-                    if(parts[i].startsWith("'")){
-                        string+= parts[i].substring(1, parts[i].length-1);
-                    }else{
-                        let expression="";
-                        let isVar=false;
-                        let variable="";
-                        for(j=0;j<parts[i].length;j++){
-                          if(parts[i][j] == " "){
-                            if(isVar){
-                                isVar=false;
-                                expression += variables[variable].value.toString();
-                                variable="";
-                            }
-                            continue;
+                for (let i = 0; i < parts.length; i++) {
+                  if (parts[i].startsWith("'")) {
+                    string += parts[i].substring(1, parts[i].length - 1);
+                  } else {
+                    let expression = "";
+                    let isVar = false;
+                    let variable = "";
+                    for (let j = 0; j < parts[i].length; j++) {
+                      if (parts[i][j] == " ") {
+                        if (isVar && variable !== "" && variable !== "'") {
+                          let v = getVariable(variable, variables);
+                          if (v) {
+                            expression += v.value.toString();
+                          } else {
+                            expression += variable;
                           }
-                          if (!isNaN(parts[i][j]) || "+-*/".includes(parts[i][j])) {
-                              if(isVar){
-                                  isVar=false;
-                                  expression += variables[variable].value.toString();
-                                  variable="";
-                              }
-                              expression += parts[i][j];
-                          }else{
-                              isVar=true;
-                              variable += parts[i][j];
-                          }
-                          if(isVar && j == parts[i].length - 1){
-                              expression += variables[variable].value.toString();
-                              isVar=false;
-                              variable="";
-                          }
+                          variable = "";
+                        }
+                        isVar = false;
+                        continue;
                       }
-                        string += eval(expression);
+                      if (!isNaN(parts[i][j]) || "+-*/".includes(parts[i][j])) {
+                        if (isVar && variable !== "" && variable !== "'") {
+                          let v = getVariable(variable, variables);
+                          if (v) {
+                            expression += v.value.toString();
+                          } else {
+                            expression += variable;
+                          }
+                          variable = "";
+                        }
+                        isVar = false;
+                        expression += parts[i][j];
+                      } else {
+                        isVar = true;
+                        variable += parts[i][j];
+                      }
+                      if (isVar && j == parts[i].length - 1) {
+                        if (variable !== "" && variable !== "'") {
+                          let v = getVariable(variable, variables);
+                          if (v) {
+                            expression += v.value.toString();
+                          } else {
+                            expression += variable;
+                          }
+                        }
+                        isVar = false;
+                        variable = "";
+                      }
                     }
+                    string += eval(expression);
+                  }
                 }
                 console.log("Print: " + string);
                 currentNode = node.next;
@@ -86,7 +103,7 @@ function executeFlow(json){
                     if (condition[j] == " ") {
                         if(isVar){
                           isVar=false;
-                          expression += variables[variable].value.toString();
+                          expression += getVariable(variable,variables).value.toString();
                           variable="";
                         }
                         continue;
@@ -94,7 +111,7 @@ function executeFlow(json){
                     if (!isNaN(condition[j]) || "+-*/<>=.()".includes(condition[j])) {
                         if(isVar){
                           isVar=false;
-                          expression += variables[variable].value.toString();
+                          expression += getVariable(variable,variables).value.toString();
                           variable="";
                         }
                         expression += condition[j];
@@ -103,7 +120,7 @@ function executeFlow(json){
                         variable += condition[j];
                     }
                     if (j == condition.length - 1 && isVar) {
-                        expression += variables[variable].value.toString();
+                        expression +=  getVariable(variable,variables).value.toString();
                         isVar=false;
                         variable="";
                     }
@@ -119,7 +136,7 @@ function executeFlow(json){
 
               case "input": //INPUT NODE
                 console.log("Input: " + node.info);
-                variables[node.info].value = inputVariable(node.info, variables[node.info].type);
+                getVariable(node.info,variables).value = inputVariable(node.info, getVariable(node.info,variables).type);
                 currentNode = node.next;  
                 break;
 
@@ -130,10 +147,10 @@ function executeFlow(json){
                 let exp = assignParts[1].trim();
 
                 Object.keys(variables).forEach(v => {
-                  exp = exp.replaceAll(v, variables[v].value.toString());
+                  exp = exp.replaceAll(v, getVariable(v,variables).value.toString());
                 });
 
-                variables[varName].value = eval(exp);
+                getVariable(varName,variables).value = eval(exp);
                 currentNode = node.next;
                 break;
 
@@ -237,4 +254,23 @@ function inputVariable(name,type) {
   } else {
     return null;
   }
+}
+
+function existVariable(vrbl,variables){
+  for(i=0;i<variables.length;i++){
+    if(vrbl == variables[i].name){
+      return true
+    }
+  }
+  return false
+}
+
+function getVariable(vrbl,variables){
+  console.log(vrbl)
+   for(i=0;i<variables.length;i++){
+    if(vrbl == variables[i].name){
+      return variables[i]
+    }
+  }
+  return null
 }
