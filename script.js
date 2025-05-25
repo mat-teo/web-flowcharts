@@ -82,27 +82,54 @@
         ctx.fillText(toWrite, cx, cy);
       }
     }
-    for (let i = 0; i < forme.length-1; i++) {
+    for (let i = 0; i < forme.length; i++) {
       const node = forme[i];
-      const node1 = forme[i+1];
-      let xSopra=node.relX*w;
-      let ySopra=node.relY*h + node.height/2;
-      let xSotto=node1.relX*w;
-      let ySotto=node1.relY*h - node.height/2;
-      drawLine(xSopra,ySopra,xSotto,ySotto);
+      const logic = flow.nodes[i];
+
+      const xMid = node.relX * w;
+      const yMid = node.relY * h;
+      const nodeWidth = node.width;
+      const nodeHeight = node.height;
+
+      if (logic.type === "if" && typeof logic.next === "object") {
+        const trueIndex = parseInt(logic.next.true);
+        const falseIndex = parseInt(logic.next.false);
+
+        if (!isNaN(trueIndex) && forme[trueIndex]) {
+          const target = forme[trueIndex];
+          drawArrowFromRight(node, target, "T");
+        }
+
+        if (!isNaN(falseIndex) && forme[falseIndex]) {
+          const target = forme[falseIndex];
+          drawArrowFromLeft(node, target, "F");
+        }
+      } else if (typeof logic.next === "string") {
+        const nextIndex = parseInt(logic.next);
+        if (!isNaN(nextIndex) && forme[nextIndex]) {
+          const target = forme[nextIndex];
+          drawLine(
+            xMid, yMid + nodeHeight / 2,
+            target.relX * w, target.relY * h - target.height / 2,
+            true
+          );
+        }
+      }
     }
   }
 
 
-  function drawLine(x1, y1, x2, y2) {
+  function drawLine(x1, y1, x2, y2, salva) {
       let n=frecce.length;
-      frecce.push( {
-        inzioX: x1,
-        inzioY: y1,
-        fineX: x2,
-        fineY: y2,
-        id: n
-      });
+      if(salva){
+        frecce.push( {
+          inzioX: x1,
+          inzioY: y1,
+          fineX: x2,
+          fineY: y2,
+          id: n
+        });
+      }
       ctx.beginPath();
       ctx.moveTo(x1, y1);       
       ctx.lineTo(x2, y2);       
@@ -131,6 +158,40 @@
 
     console.log("Nessuna freccia cliccata");
   }
+
+
+  function drawArrowFromRight(from, to, label) {
+    const startX = from.relX * w + from.width / 2;
+    const startY = from.relY * h;
+    const midX = startX + 40;
+    const endX = to.relX * w;
+    const endY = to.relY * h - to.height / 2;
+
+    drawLine(startX, startY, midX, startY,false);
+    drawLine(midX, startY, midX, endY,true);
+    drawLine(midX, endY, endX, endY,false);
+
+    ctx.fillStyle = "green";
+    ctx.font = "12px Arial";
+    ctx.fillText(label, midX + 5, (startY + endY) / 2);
+  }
+
+  function drawArrowFromLeft(from, to, label) {
+    const startX = from.relX * w - from.width / 2;
+    const startY = from.relY * h;
+    const midX = startX - 40;
+    const endX = to.relX * w;
+    const endY = to.relY * h - to.height / 2;
+
+    drawLine(startX, startY, midX, startY,false);
+    drawLine(midX, startY, midX, endY,true);
+    drawLine(midX, endY, endX, endY,false);
+
+    ctx.fillStyle = "red";
+    ctx.font = "12px Arial";
+    ctx.fillText(label, midX - 10, (startY + endY) / 2);
+  }
+
   function clickNodo(event) {
     let rect = canvas.getBoundingClientRect();
     let clickX = event.clientX - rect.left;
@@ -291,7 +352,6 @@
       };
       target.addEventListener("input", removeError, true);
     }
-    console.log(flow.variables)
   }
 
   function inserisciRiga(){
@@ -354,7 +414,7 @@
     if (ultimaRiga) {
       ultimaRiga.addEventListener("change", aggiungiVaribile);
     }
-    // svuota il contenuto della cella 1 e 3 della riga 1 (indice 1)
+    // svuota il contenuto della cella 1 e 3 della riga 1 (realIndex 1)
     if (tabVariabili.rows.length > 0) {
       let primaRiga = tabVariabili.rows[1];
       if (primaRiga.cells.length >= 3) {
@@ -370,25 +430,162 @@
     }
   }
 
-  function inserisciNodo(tipo){
-    let nodo = {"type": tipo, "info":"", "next": frecceSelected+2+""}
-    flow.nodes.splice(frecceSelected+1, 0, nodo);
-    for(i=frecceSelected+2; i<flow.nodes.length-1; i++){
-      flow.nodes[i].next = (parseInt(flow.nodes[i].next)+1) + ""
-    }
-    nodi.splice(frecceSelected+1, 0,{
-        relX: 0.35,
-        relY: 0.2,
-        width: 100,
-        height: 40,
-        color: "white",
-        text: tipo
-    })
-    
-    calcoloY(nodi)
-    draw(nodi)
+  function inserisciNodo(tipo) {
+    console.log(flow)
+    let newNodeIndex = frecceSelected + 1;
+    let nodo;
+    let isIfArrow = false;
+    let ifArrowType = null; // "T" per true, "F" per false, null per non-if
 
-    chiudiPopup() 
+    // Dopo il ciclo, imposta il flag e il tipo
+    let ifNodeIndex = null;
+    if (frecceSelected !== -1) {
+      for (let i = 0; i < nodi.length; i++) {
+        let node = flow.nodes[i];
+        if (node.type === "if" && typeof node.next === "object") {
+          const trueIndex = parseInt(node.next.true);
+          const falseIndex = parseInt(node.next.false);
+          let count = 0;
+          for (let j = 0; j < i; j++) {
+            let n = flow.nodes[j];
+            if (n.type === "if" && typeof n.next === "object") {
+              count += 2;
+            } else if (typeof n.next === "string" && n.next !== null) {
+              count += 1;
+            }
+          }
+          if (frecceSelected === count) {
+            isIfArrow = true;
+            ifArrowType = "T";
+            ifNodeIndex = i;
+            break;
+          } else if (frecceSelected === count + 1) {
+            isIfArrow = true;
+            ifArrowType = "F";
+            ifNodeIndex = i;
+            break;
+          }
+        } else if (typeof node.next === "string" && node.next !== null) {
+          let count = 0;
+          for (let j = 0; j < i; j++) {
+            let n = flow.nodes[j];
+            if (n.type === "if" && typeof n.next === "object") {
+              count += 2;
+            } else if (typeof n.next === "string" && n.next !== null) {
+              count += 1;
+            }
+          }
+          if (frecceSelected === count) {
+            isIfArrow = false;
+            ifArrowType = null;
+            ifNodeIndex = i;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (tipo === "if") {
+      // crea il nodo if con due next separati, anche se puntano allo stesso
+      let nextTrue = (newNodeIndex + 1).toString();
+      let nextFalse = (newNodeIndex + 2 < flow.nodes.length)
+        ? (newNodeIndex + 2).toString()
+        : nextTrue; // fallback: se manca, punta come true
+
+      if(isIfArrow){
+        if(ifArrowType == "T"){
+          nextTrue = flow.nodes[ifNodeIndex].next.true
+          nextFalse = flow.nodes[ifNodeIndex].next.true
+        }else{
+          nextTrue = flow.nodes[ifNodeIndex].next.false
+          nextFalse = flow.nodes[ifNodeIndex].next.false
+        }
+      }
+
+      nodo = {
+        "type": "if",
+        "info": "",
+        "next": {
+          "true": nextTrue,
+          "false": nextFalse
+        }
+      };
+    } else {
+      if(isIfArrow){
+        if(ifArrowType=="T"){
+          nodo = {
+                "type": tipo,
+                "info": "",
+                "next": (parseInt(flow.nodes[ifNodeIndex].next.true) + 1).toString()
+              };
+        }else{
+          nodo = {
+                "type": tipo,
+                "info": "",
+                "next": (parseInt(flow.nodes[ifNodeIndex].next.false)+1).toString()
+              };
+        }
+      }else{
+        nodo = {
+          "type": tipo,
+          "info": "",
+          "next": (newNodeIndex + 1).toString()
+        };
+      }
+    }
+
+    // Inserisci il nodo nel flow
+    let realIndex;
+    if(isIfArrow){
+      if(ifArrowType=="T"){
+        realIndex=ifNodeIndex+1;
+      }else{
+        realIndex=parseInt(flow.nodes[ifNodeIndex].next.false)
+      }
+    }else{
+      realIndex=newNodeIndex
+    }
+    flow.nodes.splice(realIndex, 0, nodo);
+
+    if(isIfArrow){
+      if(ifArrowType=="T"){
+        flow.nodes[ifNodeIndex].next.true = realIndex.toString()
+        flow.nodes[ifNodeIndex].next.false = (parseInt(flow.nodes[ifNodeIndex].next.false) + 1).toString() 
+      }else{
+        flow.nodes[ifNodeIndex].next.false = realIndex.toString()
+        let lastTrue = flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next;
+        if(typeof lastTrue != "object"){
+          flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next= (parseInt(flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next) + 1).toString()
+        }else{
+          flow.nodes[ifNodeIndex].next.true = (parseInt(flow.nodes[ifNodeIndex].next.true) + 1).toString()
+        }
+      }
+    }
+    // Aggiorna tutti i riferimenti next nei nodi successivi
+    for (let i = newNodeIndex + 1; i < flow.nodes.length; i++) {
+      let n = flow.nodes[i];
+      if (n.type === "if" && typeof n.next === "object") {
+        if (n.next.true) n.next.true = (parseInt(n.next.true) + 1).toString();
+        if (n.next.false) n.next.false = (parseInt(n.next.false) + 1).toString();
+      } else if (typeof n.next === "string" && n.next !== null) {
+        n.next = (parseInt(n.next) + 1).toString();
+      }
+    }
+
+    // Inserisci graficamente il nodo
+    nodi.splice(realIndex, 0, {
+      relX: 0.35,
+      relY: 0.2,
+      width: 100,
+      height: 40,
+      color: "white",
+      text: tipo
+    });
+
+    calcoloY(nodi);
+    draw(nodi);
+    chiudiPopup();
+    console.log(flow)
   }
 
   function calcoloY(nodi){

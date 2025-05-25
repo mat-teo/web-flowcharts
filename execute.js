@@ -108,7 +108,7 @@ function executeFlow(json){
                         }
                         continue;
                     } 
-                    if (!isNaN(condition[j]) || "+-*/<>=.()".includes(condition[j])) {
+                    if (!isNaN(condition[j]) || "+-*/<>!=.()".includes(condition[j])) {
                         if(isVar){
                           isVar=false;
                           expression += getVariable(variable,variables).value.toString();
@@ -146,8 +146,10 @@ function executeFlow(json){
                 let varName = assignParts[0].trim();
                 let exp = assignParts[1].trim();
 
-                Object.keys(variables).forEach(v => {
-                  exp = exp.replaceAll(v, getVariable(v,variables).value.toString());
+                variables.forEach(v => {
+                  // Replace variable names in the expression with their values
+                  // Use word boundaries to avoid partial replacements
+                  exp = exp.replace(new RegExp(`\\b${v.name}\\b`, 'g'), v.value.toString());
                 });
 
                 getVariable(varName,variables).value = eval(exp);
@@ -266,7 +268,6 @@ function existVariable(vrbl,variables){
 }
 
 function getVariable(vrbl,variables){
-  console.log(vrbl)
    for(i=0;i<variables.length;i++){
     if(vrbl == variables[i].name){
       return variables[i]
