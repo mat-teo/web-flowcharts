@@ -34,6 +34,7 @@ async function save(json,name){
         a.click()
         URL.revokeObjectURL(url)
     }
+    saved=true;
 }
 
 function openFile(file){

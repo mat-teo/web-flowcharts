@@ -61,6 +61,84 @@ html, body {
   flex-direction: column;
 }
 
+#overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(60, 0, 100, 0.25);
+  z-index: 900;
+  display: none;
+}
+
+#overlay.active {
+  display: block;
+}
+
+#new-popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 320px;
+  max-width: 90vw;
+  background: #fff;
+  border: 2px solid #6200ea;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 2rem rgba(98,0,234,0.15), 0 1px 4px rgba(0,0,0,0.08);
+  padding: 2rem 2.5rem 1.5rem 2.5rem;
+  z-index: 1300;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+#new-popup.active {
+  display: flex;
+}
+
+#new-popup p {
+  margin: 0 0 1.2rem 0;
+  color: #6200ea;
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+#new-popup button {
+  margin: 0 0.5rem;
+  padding: 0.5rem 1.3rem;
+  border: none;
+  border-radius: 0.3rem;
+  background: #ede7f6;
+  color: #6200ea;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  box-shadow: 0 1px 2px rgba(98,0,234,0.06);
+  border: 1px solid #b39ddb;
+}
+
+#new-popup button:hover {
+  background: #d1c4e9;
+  color: #3700b3;
+}
+
+#new-popup #save-btn {
+  background: #6200ea;
+  color: #fff;
+  border: none;
+  margin-left: 0.5rem;
+  transition: background 0.2s;
+}
+
+#new-popup #save-btn:hover {
+  background: #3700b3;
+}
+
 #save-popup {
   position: absolute;
   top: 50%;

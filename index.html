@@ -9,7 +9,15 @@
     <body>
         <div id="container">
             <div id="toolbar">
-                <button>New</button>
+                <button onclick="
+                if(!saved && !isEmpty()){
+                    document.getElementById('new-popup').classList = 'active'
+                    document.getElementById('overlay').classList = 'active'
+                }
+                else{
+                    location.reload()
+                }
+                ">New</button>
                 <button onclick="document.getElementById('fileInput').click()">Open</button>
                 <input type="file" id="fileInput" style="display:none;" accept=".json" multiple="false" />
                 <button onclick="saveFile()">Save</button>
@@ -85,6 +93,17 @@
                         <button id="save-cancel-btn" onclick="closeSavePopup()">Cancel</button>
                     </div>
 
+                    <div id="new-popup" >
+                        <p>Do you want to continue without saving?</p>
+                        <button id="save-btn" onclick="document.getElementById('new-popup').classList.remove('active')
+                        document.getElementById('overlay').classList.remove('active')
+                        saveFile()">Save</button>
+                        <button id="continue-btn" onclick="location.reload()">New</button>
+                        <button id="cancel-btn" onclick="document.getElementById('overlay').classList.remove('active');
+                        document.getElementById('new-popup').classList.remove('active');">Cancel</button>
+                    </div>
+
+                    <div id="overlay" ></div>
                 </div>
             </div>
             

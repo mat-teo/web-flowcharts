@@ -3,6 +3,8 @@
 
   let container = document.getElementById("canvas-container");
 
+  let saved;
+
   canvas.width = container.offsetWidth;
   canvas.height = container.offsetHeight;
 
@@ -18,7 +20,7 @@
   };
 
 
-
+  
 
 
 
@@ -33,6 +35,7 @@
 
   function chiudiPopup(){
     document.getElementById("popup-window").classList.remove("active");
+    document.getElementById('overlay').classList.remove('active');
   }
 
   function resizeCanvas() {
@@ -151,6 +154,7 @@
       if (isPointNearLine(clickX, clickY, freccia.inzioX, freccia.inzioY, freccia.fineX, freccia.fineY, 8)) {
         console.log("Hai cliccato la freccia", freccia.id);
         document.getElementById("popup-window").classList.add("active");
+        document.getElementById('overlay').classList = 'active'
         frecceSelected = freccia.id;
         return;
       }
@@ -208,6 +212,7 @@
         console.log("Hai cliccato il nodo", i);
         if(flow.nodes[i].type != "start" && flow.nodes[i].type != "end"){
           document.getElementById("edit-node-popup").classList.add("active");
+          document.getElementById('overlay').classList = 'active'
           if(flow.nodes[i].info != ""){
             document.getElementById("edit-node-input").value = flow.nodes[i].info
           }else{
@@ -352,7 +357,27 @@
       };
       target.addEventListener("input", removeError, true);
     }
+    saved=false;
   }
+
+  function isEmpty(){
+    if(flow.nodes.length==2){
+      return true
+    }else{
+      return false
+    }
+  }
+
+  window.addEventListener('keydown', function(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
+      event.preventDefault();
+      if(!isEmpty() && !saved){
+        if (confirm("There are unsaved changes. Do you really want to reload the page?")) {
+          location.reload();
+        }
+      }
+    }
+  });
 
   function inserisciRiga(){
     let nuovaRiga=tabVariabili.insertRow();
@@ -388,6 +413,7 @@
   }
 
   window.onload = function (){
+    saved=true;
     window.addEventListener("resize", resizeCanvas);
     
       //Disegno start
@@ -483,6 +509,7 @@
           }
         }
       }
+      saved=false;
     }
     
     if (tipo === "if") {
@@ -598,10 +625,12 @@
 
   function chiudiEditPopup(){
     document.getElementById("edit-node-popup").classList.remove("active");
+    document.getElementById('overlay').classList.remove('active')
   }
 
    function closeSavePopup(){
     document.getElementById("save-popup").classList.remove("active");
+    document.getElementById('overlay').classList.remove('active');
   }
 
   function run(){
@@ -610,6 +639,7 @@
 
   function saveFile(){
     document.getElementById("save-popup").classList ="active";
+    document.getElementById('overlay').classList = 'active'
   }
 
 
