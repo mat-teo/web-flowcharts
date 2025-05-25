@@ -7,7 +7,15 @@ html, body {
   color: #333;
   box-sizing: border-box;
 }
-
+#canvas-container {
+    flex-grow: 1; /* Permette al contenitore del canvas di espandersi orizzontalmente */
+    position: relative; /* Importante per il corretto posizionamento dei popup al suo interno */
+    /* Potresti anche voler aggiungere per sicurezza, anche se flex-grow:1 dovrebbe bastare: */
+    width: 100%; /* O un min-width: 0; in alcuni casi complessi di flexbox */
+    height: 100%;
+    overflow: auto; /* Molto importante: aggiunge le barre di scorrimento quando il contenuto (il canvas) è più grande */
+    border: 1px solid #ccc; /* Opzionale: per vedere i bordi del contenitore scrollabile */
+}
 
 #container {
   display: flex;

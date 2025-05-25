@@ -1,14 +1,15 @@
+// Riferimenti agli elementi del canvas e al contesto di disegno
   let canvas = document.getElementById("canvas");
   let ctx = canvas.getContext("2d");
-
   let container = document.getElementById("canvas-container");
 
+  // Impostazioni iniziali delle dimensioni del canvas
   canvas.width = container.offsetWidth;
   canvas.height = container.offsetHeight;
-
   let w = canvas.width;
   let h = canvas.height;
 
+  // Struttura dati principale per la logica del flowchart
   let flow = {
     "nodes": [
       { "type": "start", "info": "", "next": "1" },
@@ -17,186 +18,212 @@
     "variables": []
   };
 
+  // Variabili per tenere traccia della selezione corrente dell'utente
+  let frecceSelected = -1; // Indice della freccia selezionata
+  let nodoSelected = -1;   // Indice del nodo selezionato
 
-
-
-
-
-  let frecceSelected = -1;
-  let nodoSelected = -1;
+  // Array per gli oggetti visuali (nodi e frecce) sul canvas
   let nodi = [];
   let frecce = [];
 
-  let tabVariabili=document.getElementById("tabVariabili");
-
+  // Riferimento alla tabella HTML delle variabili
+  let tabVariabili = document.getElementById("tabVariabili");
+  // Array per la gestione delle righe della tabella 
   let rigaTabella = [];
 
-  function chiudiPopup(){
+
+
+   // Nasconde la finestra popup utilizzata per selezionare il tipo di nodo da inserire.
+  function chiudiPopup() {
     document.getElementById("popup-window").classList.remove("active");
   }
 
+  /**
+   * Adapta le dimensioni del canvas quando la finestra del browser viene ridimensionata
+   * e ridisegna l'intero flowchart.
+   */
   function resizeCanvas() {
-      canvas.width = window.innerWidth - 10;
-      canvas.height = window.innerHeight - 10;
-      ctx = canvas.getContext("2d");
-      w = canvas.width;
-      h = canvas.height;
-
-      draw(nodi);
+    canvas.width = window.innerWidth - 10;
+    canvas.height = window.innerHeight - 10;
+    ctx = canvas.getContext("2d");
+    w = canvas.width;
+    h = canvas.height;
+    draw(nodi); // Ridisegna tutto
   }
 
-
+  /**
+   * Disegna l'intero flowchart (nodi e frecce) sul canvas.
+   * @param {Array} forme - Array degli oggetti nodo visuali da disegnare.
+   */
   function draw(forme) {
-    ctx.clearRect(0, 0, w, h);
-    frecce = []
+    ctx.clearRect(0, 0, w, h); // Pulisce il canvas
+    frecce = []; // Resetta l'array delle frecce, che verranno ricalcolate
+
+    // Blocco 1: Disegna tutti i nodi (rettangoli e testo)
     for (let i = 0; i < forme.length; i++) {
       const node = forme[i];
-
-      // calcolo posizione in alto a sinistra
-      const x0 = node.relX * w - node.width  / 2;
+ 
+      const x0 = node.relX * w - node.width / 2;
       const y0 = node.relY * h - node.height / 2;
-      // coordinate del centro del nodo
-      const cx = x0 + node.width  / 2;
+      const cx = x0 + node.width / 2;
       const cy = y0 + node.height / 2;
 
-      // disegno il rettangolo
-      ctx.fillStyle   = node.color;
+      ctx.fillStyle = node.color;
       ctx.fillRect(x0, y0, node.width, node.height);
       ctx.strokeStyle = "black";
       ctx.strokeRect(x0, y0, node.width, node.height);
-
-      // disegno il testo al centro, se esiste
+      //scirtta dentro 
       if (node.text) {
-        const fontSize = 14;
-        ctx.font         = `${fontSize}px Arial`;
-        ctx.fillStyle    = "black";
-        ctx.textAlign    = "center";  // orizzontale
-        ctx.textBaseline = "middle";  // verticale
-        let toWrite = node.text
-        if(flow.nodes[i].type != "end" && flow.nodes[i].type != "start"){
-            toWrite+=":\n"+ flow.nodes[i].info;
-            if(flow.nodes[i].info == ""){
-              toWrite+="empty"
-            }
+        let toWrite = node.text;
+        if (flow.nodes[i].type != "end" && flow.nodes[i].type != "start") {
+          toWrite += ":\n" + (flow.nodes[i].info || "empty");
         }
+        ctx.font = `14px Arial`;
+        ctx.fillStyle = "black";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
         ctx.fillText(toWrite, cx, cy);
       }
     }
+
+    // Blocco 2: Disegna le frecce di collegamento tra i nodi
+    // Questo avviene dopo aver disegnato tutti i nodi per avere le loro posizioni corrette.
     for (let i = 0; i < forme.length; i++) {
-      const node = forme[i];
-      const logic = flow.nodes[i];
+      const node = forme[i]; // Nodo visuale di partenza
+      const logic = flow.nodes[i]; // Nodo logico corrispondente
 
       const xMid = node.relX * w;
       const yMid = node.relY * h;
-      const nodeWidth = node.width;
       const nodeHeight = node.height;
 
+      // Gestisce le frecce per i nodi "if" (con rami true/false)
       if (logic.type === "if" && typeof logic.next === "object") {
         const trueIndex = parseInt(logic.next.true);
         const falseIndex = parseInt(logic.next.false);
-
         if (!isNaN(trueIndex) && forme[trueIndex]) {
-          const target = forme[trueIndex];
-          drawArrowFromRight(node, target, "T");
+          drawArrowFromRight(node, forme[trueIndex], "T");
         }
-
         if (!isNaN(falseIndex) && forme[falseIndex]) {
-          const target = forme[falseIndex];
-          drawArrowFromLeft(node, target, "F");
+          drawArrowFromLeft(node, forme[falseIndex], "F");
         }
+      // Gestisce le frecce per gli altri tipi di nodi (con una singola uscita 'next')
       } else if (typeof logic.next === "string") {
         const nextIndex = parseInt(logic.next);
         if (!isNaN(nextIndex) && forme[nextIndex]) {
           const target = forme[nextIndex];
-          drawLine(
-            xMid, yMid + nodeHeight / 2,
-            target.relX * w, target.relY * h - target.height / 2,
-            true
-          );
+          drawLine(xMid, yMid + nodeHeight / 2, target.relX * w, target.relY * h - target.height / 2, true);
         }
       }
     }
   }
 
-
+  /**
+   * Disegna una linea tra due punti.
+   * Se 'salva' è true, la linea viene aggiunta all'array 'frecce' per la rilevazione dei click.
+   */
   function drawLine(x1, y1, x2, y2, salva) {
-      let n=frecce.length;
-      if(salva){
-        frecce.push( {
-          inzioX: x1,
-          inzioY: y1,
-          fineX: x2,
-          fineY: y2,
-          id: n
-        });
-      }
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);       
-      ctx.lineTo(x2, y2);       
-      ctx.strokeStyle = "black";  
-      ctx.lineWidth = 2;    
-      ctx.stroke();             
+    if (salva) {
+      frecce.push({ inzioX: x1, inzioY: y1, fineX: x2, fineY: y2, id: frecce.length });
+    }
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
-  function checkClick(event){
-    clickNodo(event)
-    clickFreccia(event)
+
+  /**
+   * Gestore dell'evento click sul canvas.
+   * Verifica se il click è avvenuto su un nodo o su una freccia.
+   */
+  function checkClick(event) {
+    clickNodo(event);
+    clickFreccia(event);
   }
+
+  /**
+   * Gestisce il click su una freccia.
+   * Se una freccia viene cliccata, apre il popup per l'inserimento di un nuovo nodo.
+   */
   function clickFreccia(event) {
+    // Blocco 1: Calcola le coordinate del click relative al canvas
     let rect = canvas.getBoundingClientRect();
     let clickX = event.clientX - rect.left;
     let clickY = event.clientY - rect.top;
 
+    // Blocco 2: Itera sulle frecce disegnate e verifica se qualcuna è stata cliccata
+    // La funzione 'isPointNearLine' è usata per questa verifica.
     for (let i = 0; i < frecce.length; i++) {
       const freccia = frecce[i];
       if (isPointNearLine(clickX, clickY, freccia.inzioX, freccia.inzioY, freccia.fineX, freccia.fineY, 8)) {
         console.log("Hai cliccato la freccia", freccia.id);
-        document.getElementById("popup-window").classList.add("active");
-        frecceSelected = freccia.id;
+        document.getElementById("popup-window").classList.add("active"); // Mostra il popup
+        frecceSelected = freccia.id; // Memorizza l'ID della freccia
         return;
       }
     }
-
-    console.log("Nessuna freccia cliccata");
   }
 
-
+  /**
+   * Disegna una freccia "a gomito" dal lato destro del nodo 'from' al nodo 'to',
+   * tipicamente usata per il ramo 'true' di un nodo 'if', con un'etichetta.
+   */
   function drawArrowFromRight(from, to, label) {
     const startX = from.relX * w + from.width / 2;
     const startY = from.relY * h;
     const midX = startX + 40;
     const endX = to.relX * w;
-    const endY = to.relY * h - to.height / 2;
+    const endY = to.relY * h - to.height / 2 -30;
 
-    drawLine(startX, startY, midX, startY,false);
-    drawLine(midX, startY, midX, endY,true);
-    drawLine(midX, endY, endX, endY,false);
+    drawLine(startX, startY, midX, startY, false);
+    drawLine(midX, startY, midX, endY, true); // Segmento verticale, salvato per click
+    drawLine(midX, endY, endX + 11, endY, false); // Leggero offset per il cerchio
 
+    // Disegna un cerchio nel punto di connessione e l'etichetta
+    const circleCenterX = endX;
+    const circleCenterY = endY;
+    ctx.beginPath();
+    ctx.arc(circleCenterX, circleCenterY, 10, 0, 2 * Math.PI, false);
+    ctx.stroke();
     ctx.fillStyle = "green";
     ctx.font = "12px Arial";
     ctx.fillText(label, midX + 5, (startY + endY) / 2);
+
+    drawLine(endX , endY +10, endX, endY +30, true); // Leggero offset per il cerchio
   }
 
+  /**
+   * Disegna una freccia "a gomito" dal lato sinistro del nodo 'from' al nodo 'to',
+   * tipicamente usata per il ramo 'false' di un nodo 'if', con un'etichetta.
+   */
   function drawArrowFromLeft(from, to, label) {
     const startX = from.relX * w - from.width / 2;
     const startY = from.relY * h;
     const midX = startX - 40;
     const endX = to.relX * w;
-    const endY = to.relY * h - to.height / 2;
+    const endY = to.relY * h - to.height / 2 -30 ;
 
-    drawLine(startX, startY, midX, startY,false);
-    drawLine(midX, startY, midX, endY,true);
-    drawLine(midX, endY, endX, endY,false);
+    drawLine(startX, startY, midX, startY, false);
+    drawLine(midX, startY, midX, endY, true); // Segmento verticale, salvato per click
+    drawLine(midX, endY, endX - 11, endY, false);
 
     ctx.fillStyle = "red";
     ctx.font = "12px Arial";
     ctx.fillText(label, midX - 10, (startY + endY) / 2);
   }
 
+  /**
+   * Gestisce il click su un nodo.
+   * Se un nodo (non 'start' o 'end') è cliccato, apre il popup per modificarne le informazioni.
+   */
   function clickNodo(event) {
+    // Blocco 1: Calcola le coordinate del click relative al canvas
     let rect = canvas.getBoundingClientRect();
     let clickX = event.clientX - rect.left;
     let clickY = event.clientY - rect.top;
 
+    // Blocco 2: Itera sui nodi e verifica se qualcuno è stato cliccato
     for (let i = 0; i < nodi.length; i++) {
       const node = nodi[i];
       const x0 = node.relX * w - node.width / 2;
@@ -206,400 +233,311 @@
 
       if (clickX >= x0 && clickX <= x1 && clickY >= y0 && clickY <= y1) {
         console.log("Hai cliccato il nodo", i);
-        if(flow.nodes[i].type != "start" && flow.nodes[i].type != "end"){
+        // Apre il popup di modifica solo per nodi che non siano 'start' o 'end'
+        if (flow.nodes[i].type != "start" && flow.nodes[i].type != "end") {
           document.getElementById("edit-node-popup").classList.add("active");
-          if(flow.nodes[i].info != ""){
-            document.getElementById("edit-node-input").value = flow.nodes[i].info
-          }else{
-            document.getElementById("edit-node-input").value = "" 
-          }
-        }  
-        nodoSelected = i;
+          document.getElementById("edit-node-input").value = flow.nodes[i].info || "";
+        }
+        nodoSelected = i; // Memorizza l'indice del nodo
         return;
       }
     }
-
-    console.log("Nessun nodo cliccato");
-  }
-  function salvaInfo(){
-      flow.nodes[nodoSelected].info = document.getElementById("edit-node-input").value;
-      chiudiEditPopup()
-      draw(nodi)
   }
 
+  /**
+   * Salva le informazioni inserite nel popup di modifica del nodo
+   * nel nodo logico corrispondente e ridisegna il flowchart.
+   */
+  function salvaInfo() {
+    flow.nodes[nodoSelected].info = document.getElementById("edit-node-input").value;
+    chiudiEditPopup();
+    draw(nodi);
+  }
+
+  /**
+   * Verifica se un punto (clickX, clickY) è vicino a un segmento di linea (x1,y1)-(x2,y2).
+   * L'implementazione attuale è più adatta a rilevare click vicino a linee verticali.
+   */
   function isPointNearLine(clickX, clickY, x1, y1, x2, y2, distanza) {
-      let f=false; //Se false nessuan freccia cliccata, se true allora rilevato
-      if(clickX <= x1 + distanza && clickX >= x1-distanza){
-        if(clickY >= y1 && clickY <= y2){
-          f=true;
-        }
+    let f = false;
+    if (clickX <= x1 + distanza && clickX >= x1 - distanza) {
+      if ((clickY >= y1 && clickY <= y2) || (clickY >= y2 && clickY <= y1)) {
+        f = true;
       }
-      return f;
-  }
-
-  // Una variabile deve iniziare con una lettera e contenere solo lettere e numeri
-  function lettereENumeri(str) {
-      return /^[a-zA-Z][a-zA-Z0-9]*$/.test(str);
-  }
-
-  function aggiungiVaribile(event) {
-    // trova la riga su cui è stato attivato l'evento
-    let target = event.target;
-    // risali fino alla riga (tr)
-    while (target && target.tagName !== "TR") {
-      target = target.parentElement;
     }
+    return f;
+  }
+
+  /**
+   * Controlla se una stringa è un nome di variabile valido (inizia con lettera, poi lettere o numeri).
+   */
+  function lettereENumeri(str) {
+    return /^[a-zA-Z][a-zA-Z0-9]*$/.test(str);
+  }
+
+  /**
+   * Gestisce l'aggiunta o la modifica di una variabile nella tabella HTML.
+   * Viene attivata quando l'utente modifica i campi di una riga della tabella.
+   */
+  function aggiungiVaribile(event) {
+    // Blocco 1: Identifica la riga modificata e ottiene i valori inseriti dall'utente.
+    let target = event.target;
+    while (target && target.tagName !== "TR") target = target.parentElement;
     if (!target) return;
 
-    // aggiungi la riga solo se la riga modificata è l'ultima della tabella
     let isUltimaRiga = (target.rowIndex === tabVariabili.rows.length - 1);
+    let val1 = target.cells[0].querySelector("input").value.trim(); // Nome
+    let tipo = target.cells[1].querySelector("select").value;    // Tipo
+    let val3 = target.cells[2].querySelector("input").value.trim(); // Valore
 
-    let cella1 = target.cells[0];
-    let cella2 = target.cells[1];
-    let cella3 = target.cells[2];
-    let f = false;
-    let valore;
-    let tipo = cella2.querySelector("select").value;
-    let val1 = cella1.querySelector("input").value;
-    let val3 = cella3.querySelector("input").value;
+    // Rimuove eventuali messaggi di errore precedenti
+    let oldError = target.nextSibling;
+    if (oldError && oldError.classList && oldError.classList.contains("error-message-row")) {
+      oldError.remove();
+    }
 
-    // rimuovi eventuali messaggi di errore precedenti
-    let oldError = target.querySelector(".error-message");
-    if (oldError) oldError.remove();
-
-    // controllo: se NON è l'ultima riga e tutte le celle sono vuote, elimina la riga
+    // Blocco 2: Se non è l'ultima riga e i campi nome/valore sono vuoti, elimina la variabile.
     if (!isUltimaRiga && val1 === "" && val3 === "") {
-      // rimuovi anche da flow.variables
       flow.variables.splice(target.rowIndex - 1, 1);
       tabVariabili.deleteRow(target.rowIndex);
       return;
     }
 
-    // controlla se tutte le celle sono piene
-    if (val1 === "" || val3 === "") {
-      return;
-    }
+    // Se nome o valore sono vuoti (e non è un'eliminazione), attende input completo.
+    if (val1 === "" || val3 === "") return;
+
+    // Blocco 3: Valida il nome e il valore della variabile in base al tipo.
+    let fValid = false;
+    let valoreConvertito;
     let errMsg = "";
-    // controlla se il valore della prima cella è valido
     if (lettereENumeri(val1)) {
+      // Validazione specifica per tipo
       switch (tipo) {
         case "int":
-          if (/^-?\d+$/.test(val3)) {
-            f = true;
-            valore = parseInt(val3);
-          } else {
-            errMsg = "Il valore deve essere un intero valido.";
-          }
+          if (/^-?\d+$/.test(val3)) { fValid = true; valoreConvertito = parseInt(val3); }
+          else { errMsg = "Il valore deve essere un intero valido."; }
           break;
         case "float":
-          if (/^-?\d*\.\d+$/.test(val3) || /^-?\d+\.\d*$/.test(val3)) {
-            f = true;
-            valore = parseFloat(val3);
-          } else {
-            errMsg = "Il valore deve essere un numero decimale valido.";
-          }
+          if (/^-?\d*\.\d+$/.test(val3) || /^-?\d+\.?\d*$/.test(val3)) { fValid = true; valoreConvertito = parseFloat(val3); }
+          else { errMsg = "Il valore deve essere un numero decimale valido."; }
           break;
         case "string":
-          if (val3 !== "") {
-            f = true;
-            valore = val3;
-          } else {
-            errMsg = "Il valore stringa non può essere vuoto.";
-          }
+          fValid = true; valoreConvertito = val3;
           break;
       }
     } else {
-      errMsg = "Il nome della variabile deve iniziare con una lettera e contenere solo lettere (a-z, A-Z) e numeri (0-9).";
+      errMsg = "Nome variabile non valido.";
     }
 
-    // se i dati sono corretti, aggiorna o aggiungi la variabile
-    if (f) {
-      if (!isUltimaRiga) {
-        // Modifica una variabile esistente
-        let idx = target.rowIndex - 1;
-        if (flow.variables[idx]) {
-          flow.variables[idx].name = val1;
-          flow.variables[idx].type = tipo;
-          flow.variables[idx].value = val3;
-        }
-      } else {
-        // Aggiungi una nuova variabile solo se non già inserita
-        if (target.getAttribute("data-inserito") === "1") return;
+    // Blocco 4: Se i dati sono validi, aggiorna/aggiunge la variabile logica e gestisce la tabella.
+    if (fValid) {
+      if (!isUltimaRiga) { // Modifica variabile esistente
+        flow.variables[target.rowIndex - 1] = { name: val1, type: tipo, value: valoreConvertito };
+      } else { // Aggiunge nuova variabile
+        if (target.getAttribute("data-inserito") === "1") return; // Previene doppie aggiunte
         target.setAttribute("data-inserito", "1");
-        let variabile = { "name": val1, "type": tipo, "value": val3 };
-        flow.variables.push(variabile);
-        let riga = {
-          name: val1,
-          type: tipo,
-          value: valore,
-        }
-        rigaTabella.push(riga);
-        inserisciRiga();
-        let nuovaRiga = tabVariabili.rows[tabVariabili.rows.length - 1];
-        nuovaRiga.addEventListener("change", aggiungiVaribile);
+        flow.variables.push({ name: val1, type: tipo, value: valoreConvertito });
+        inserisciRiga(); // Aggiunge nuova riga vuota per input futuro
+        tabVariabili.rows[tabVariabili.rows.length - 1].addEventListener("change", aggiungiVaribile);
+        target.removeAttribute("data-inserito");
       }
+    // Blocco 5: Se i dati non sono validi, mostra un messaggio di errore.
     } else {
-      // mostra un messaggio di errore in una nuova riga subito sotto quella corrente
       let errorRow = tabVariabili.insertRow(target.rowIndex + 1);
+      errorRow.classList.add("error-message-row");
       let errorCell = errorRow.insertCell();
       errorCell.colSpan = 3;
       errorCell.className = "error-message";
       errorCell.textContent = "Dati non validi. " + errMsg;
-      // rimuovi il messaggio se la riga viene modificata di nuovo
-      let removeError = () => {
-        if (errorRow.parentNode) errorRow.parentNode.removeChild(errorRow);
-        target.removeEventListener("input", removeError, true);
-      };
-      target.addEventListener("input", removeError, true);
+      target.addEventListener("input", () => { if (errorRow.parentNode) errorRow.remove(); }, { once: true });
     }
   }
 
-  function inserisciRiga(){
-    let nuovaRiga=tabVariabili.insertRow();
-    let cell1,cell2,cell3;
-    cell1= nuovaRiga.insertCell();
-    cell2= nuovaRiga.insertCell();
-    cell3= nuovaRiga.insertCell();
-    let inputCella1=document.createElement("input");
-    let inputCella3=document.createElement("input");
-    let selectCella2=document.createElement("select");
-    inputCella1.type="text";
-    inputCella3.type="text";
+  /**
+   * Inserisce una nuova riga vuota (con campi input/select) nella tabella delle variabili HTML.
+   */
+  function inserisciRiga() {
+    let nuovaRiga = tabVariabili.insertRow();
+    let cell1 = nuovaRiga.insertCell();
+    let cell2 = nuovaRiga.insertCell();
+    let cell3 = nuovaRiga.insertCell();
 
-    let option=[
-      {value: "int", text: "Integer"},
-      {value: "float", text: "Float"},
-      {value: "string", text: "String"}
-    ];
-    let selectOptions= [];
-    let i;
-    for(i=0; i<3; i++){
-      selectOptions[i]=document.createElement("option");
-      selectOptions[i].value=option[i].value;
-      selectOptions[i].textContent=option[i].text;
-      selectCella2.appendChild(selectOptions[i]);
-    }
-    inputCella1.classList.add("inputVariable");
-    selectCella2.classList.add("inputVariable");
-    inputCella3.classList.add("inputVariable");
-    cell1.appendChild(inputCella1);
-    cell2.appendChild(selectCella2);
-    cell3.appendChild(inputCella3);
-  }
+    let inputNome = document.createElement("input");
+    inputNome.type = "text"; inputNome.classList.add("inputVariable");
+    cell1.appendChild(inputNome);
 
-  window.onload = function (){
-    window.addEventListener("resize", resizeCanvas);
-    
-      //Disegno start
-      nodi.push({
-        relX: 0.35,
-        relY: 0.05,
-        width: 100,
-        height: 40,
-        color: "white",
-        text: "Start"
+    let selectTipo = document.createElement("select");
+    selectTipo.classList.add("inputVariable");
+    ["int", "float", "string"].forEach(val => {
+      let option = document.createElement("option");
+      option.value = val; option.textContent = val.charAt(0).toUpperCase() + val.slice(1);
+      selectTipo.appendChild(option);
     });
-    //Disegno End
-    nodi.push({
-        relX: 0.35,
-        relY: 0.4,
-        width: 100,
-        height: 40,
-        color: "white",
-        text: "End"
-    })
-    draw(nodi);
-    canvas.addEventListener("click",checkClick);
-    let ultimaRiga = tabVariabili.rows[tabVariabili.rows.length - 1];
-    if (ultimaRiga) {
-      ultimaRiga.addEventListener("change", aggiungiVaribile);
-    }
-    // svuota il contenuto della cella 1 e 3 della riga 1 (realIndex 1)
-    if (tabVariabili.rows.length > 0) {
-      let primaRiga = tabVariabili.rows[1];
-      if (primaRiga.cells.length >= 3) {
-        let cella1Input = primaRiga.cells[0].querySelector("input");
-        let cella3Input = primaRiga.cells[2].querySelector("input");
-        if (cella1Input) {
-          cella1Input.value = "";
-        }
-        if (cella3Input) {
-          cella3Input.value = "";
-        }
-      }
+    cell2.appendChild(selectTipo);
+
+    let inputValore = document.createElement("input");
+    inputValore.type = "text"; inputValore.classList.add("inputVariable");
+    cell3.appendChild(inputValore);
+  }
+
+  /**
+   * Funzione eseguita al caricamento completo della pagina (onload).
+   * Inizializza il flowchart di base, disegna e imposta gli event listener.
+   */
+  window.onload = function () {
+    window.addEventListener("resize", resizeCanvas);
+
+    // Creazione dei nodi visuali iniziali (Start e End)
+    nodi.push({ relX: 0.35, relY: 0.05, width: 100, height: 40, color: "white", text: "Start" });
+    nodi.push({ relX: 0.35, relY: 0.4, width: 100, height: 40, color: "white", text: "End" });
+    calcoloY(nodi); // Calcola le posizioni Y corrette
+    draw(nodi);     // Disegna il flowchart iniziale
+
+    canvas.addEventListener("click", checkClick); // Listener per click su nodi/frecce
+
+    // Imposta il listener per la prima riga dati della tabella variabili
+    if (tabVariabili.rows[1]) {
+      tabVariabili.rows[1].addEventListener("change", aggiungiVaribile);
+      // Svuota i campi della prima riga dati, se necessario
+      tabVariabili.rows[1].cells[0].querySelector("input").value = "";
+      tabVariabili.rows[1].cells[2].querySelector("input").value = "";
     }
   }
 
+  /**
+   * Inserisce un nuovo nodo logico e visuale nel flowchart quando l'utente clicca su una freccia.
+   * Questa funzione è complessa per la gestione degli indici e dei puntatori 'next'.
+   * @param {string} tipo - Il tipo di nodo da inserire (es. "input", "print", "if").
+   */
   function inserisciNodo(tipo) {
-    console.log(flow)
-    let newNodeIndex = frecceSelected + 1;
-    let nodo;
+    // Blocco 1: Identifica il nodo sorgente (ifNodeIndex) e il tipo di ramo (ifArrowType)
+    // della freccia selezionata (frecceSelected). Questo determina da dove parte la freccia cliccata.
     let isIfArrow = false;
-    let ifArrowType = null; // "T" per true, "F" per false, null per non-if
-
-    // Dopo il ciclo, imposta il flag e il tipo
-    let ifNodeIndex = null;
+    let ifArrowType = null;
+    let ifNodeIndex = -1; // Indice del nodo logico sorgente della freccia cliccata
     if (frecceSelected !== -1) {
-      for (let i = 0; i < nodi.length; i++) {
-        let node = flow.nodes[i];
-        if (node.type === "if" && typeof node.next === "object") {
-          const trueIndex = parseInt(node.next.true);
-          const falseIndex = parseInt(node.next.false);
-          let count = 0;
-          for (let j = 0; j < i; j++) {
-            let n = flow.nodes[j];
-            if (n.type === "if" && typeof n.next === "object") {
-              count += 2;
-            } else if (typeof n.next === "string" && n.next !== null) {
-              count += 1;
-            }
+      let currentArrowCount = 0;
+      for (let i = 0; i < flow.nodes.length; i++) {
+        let nodeLogic = flow.nodes[i];
+        if (nodeLogic.type === "end") continue;
+
+        if (nodeLogic.type === "if" && typeof nodeLogic.next === "object") {
+          if (currentArrowCount === frecceSelected) { 
+            isIfArrow = true; ifArrowType = "T"; 
+            ifNodeIndex = i; 
+            break; 
           }
-          if (frecceSelected === count) {
-            isIfArrow = true;
-            ifArrowType = "T";
-            ifNodeIndex = i;
-            break;
-          } else if (frecceSelected === count + 1) {
-            isIfArrow = true;
-            ifArrowType = "F";
-            ifNodeIndex = i;
-            break;
+          currentArrowCount++;
+          if (currentArrowCount === frecceSelected) { 
+            isIfArrow = true; ifArrowType = "F"; 
+            ifNodeIndex = i; 
+            break; 
           }
-        } else if (typeof node.next === "string" && node.next !== null) {
-          let count = 0;
-          for (let j = 0; j < i; j++) {
-            let n = flow.nodes[j];
-            if (n.type === "if" && typeof n.next === "object") {
-              count += 2;
-            } else if (typeof n.next === "string" && n.next !== null) {
-              count += 1;
-            }
-          }
-          if (frecceSelected === count) {
-            isIfArrow = false;
-            ifArrowType = null;
-            ifNodeIndex = i;
-            break;
-          }
+          currentArrowCount++;
+        } else if (typeof nodeLogic.next === "string" && nodeLogic.next !== null) {
+          if (currentArrowCount === frecceSelected) { isIfArrow = false; ifArrowType = null; ifNodeIndex = i; break; }
+          currentArrowCount++;
         }
       }
     }
-    
-    if (tipo === "if") {
-      // crea il nodo if con due next separati, anche se puntano allo stesso
-      let nextTrue = (newNodeIndex + 1).toString();
-      let nextFalse = (newNodeIndex + 2 < flow.nodes.length)
-        ? (newNodeIndex + 2).toString()
-        : nextTrue; // fallback: se manca, punta come true
+    if (ifNodeIndex === -1 && frecceSelected !== -1) { chiudiPopup(); return; } // Errore nel trovare il sorgente
 
-      if(isIfArrow){
-        if(ifArrowType == "T"){
-          nextTrue = flow.nodes[ifNodeIndex].next.true
-          nextFalse = flow.nodes[ifNodeIndex].next.true
-        }else{
-          nextTrue = flow.nodes[ifNodeIndex].next.false
-          nextFalse = flow.nodes[ifNodeIndex].next.false
-        }
-      }
-
-      nodo = {
-        "type": "if",
-        "info": "",
-        "next": {
-          "true": nextTrue,
-          "false": nextFalse
-        }
-      };
+    // Blocco 2: Determina l'indice di inserimento (insertionIndex).
+    // È l'indice del nodo che era la destinazione originale della freccia cliccata.
+    let originalTargetIndexStr;
+    if (isIfArrow) {
+      originalTargetIndexStr = (ifArrowType === "T") ? flow.nodes[ifNodeIndex].next.true : flow.nodes[ifNodeIndex].next.false;
     } else {
-      if(isIfArrow){
-        if(ifArrowType=="T"){
-          nodo = {
-                "type": tipo,
-                "info": "",
-                "next": (parseInt(flow.nodes[ifNodeIndex].next.true) + 1).toString()
-              };
-        }else{
-          nodo = {
-                "type": tipo,
-                "info": "",
-                "next": (parseInt(flow.nodes[ifNodeIndex].next.false)+1).toString()
-              };
-        }
-      }else{
-        nodo = {
-          "type": tipo,
-          "info": "",
-          "next": (newNodeIndex + 1).toString()
-        };
-      }
+      originalTargetIndexStr = (ifNodeIndex !== -1) ? flow.nodes[ifNodeIndex].next : flow.nodes[flow.nodes.length - 1].next;
+    }
+    let insertionIndex = parseInt(originalTargetIndexStr);
+
+    // Blocco 3: Crea il nuovo oggetto nodo logico ('nodo').
+    // I suoi puntatori 'next' punteranno al nodo che era la destinazione originale.
+    let nuovoNodoLogico;
+    if (tipo === "if") {
+      nuovoNodoLogico = { type: "if", info: "", next: { true: insertionIndex.toString(), false: insertionIndex.toString() } };
+    } else {
+      nuovoNodoLogico = { type: tipo, info: "", next: insertionIndex.toString() };
     }
 
-    // Inserisci il nodo nel flow
-    let realIndex;
-    if(isIfArrow){
-      if(ifArrowType=="T"){
-        realIndex=ifNodeIndex+1;
-      }else{
-        realIndex=parseInt(flow.nodes[ifNodeIndex].next.false)
-      }
-    }else{
-      realIndex=newNodeIndex
-    }
-    flow.nodes.splice(realIndex, 0, nodo);
+    // Blocco 4: Inserisce il nuovo nodo logico nell'array 'flow.nodes'.
+    flow.nodes.splice(insertionIndex, 0, nuovoNodoLogico);
 
-    if(isIfArrow){
-      if(ifArrowType=="T"){
-        flow.nodes[ifNodeIndex].next.true = realIndex.toString()
-        flow.nodes[ifNodeIndex].next.false = (parseInt(flow.nodes[ifNodeIndex].next.false) + 1).toString() 
-      }else{
-        flow.nodes[ifNodeIndex].next.false = realIndex.toString()
-        let lastTrue = flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next;
-        if(typeof lastTrue != "object"){
-          flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next= (parseInt(flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next) + 1).toString()
-        }else{
-          flow.nodes[ifNodeIndex].next.true = (parseInt(flow.nodes[ifNodeIndex].next.true) + 1).toString()
-        }
-      }
-    }
-    // Aggiorna tutti i riferimenti next nei nodi successivi
-    for (let i = newNodeIndex + 1; i < flow.nodes.length; i++) {
+    // Blocco 5: Aggiorna i puntatori 'next' di tutti i nodi successivi all'inserimento
+    // e del nodo appena inserito per riflettere lo shift degli indici.
+    for (let i = insertionIndex + 1; i < flow.nodes.length; i++) { // Nodi shiftati
       let n = flow.nodes[i];
       if (n.type === "if" && typeof n.next === "object") {
-        if (n.next.true) n.next.true = (parseInt(n.next.true) + 1).toString();
-        if (n.next.false) n.next.false = (parseInt(n.next.false) + 1).toString();
+        if (n.next.true !== null) n.next.true = (parseInt(n.next.true) + 1).toString();
+        if (n.next.false !== null) n.next.false = (parseInt(n.next.false) + 1).toString();
       } else if (typeof n.next === "string" && n.next !== null) {
         n.next = (parseInt(n.next) + 1).toString();
       }
     }
+    // Aggiorna i puntatori del nodo appena inserito (che è a flow.nodes[insertionIndex])
+    const nodoAppenaInserito = flow.nodes[insertionIndex];
+    if (nodoAppenaInserito.type === "if") {
+      nodoAppenaInserito.next.true = (parseInt(nodoAppenaInserito.next.true) + 1).toString();
+      nodoAppenaInserito.next.false = (parseInt(nodoAppenaInserito.next.false) + 1).toString();
+    } else if (nodoAppenaInserito.next !== null) {
+      nodoAppenaInserito.next = (parseInt(nodoAppenaInserito.next) + 1).toString();
+    }
 
-    // Inserisci graficamente il nodo
-    nodi.splice(realIndex, 0, {
-      relX: 0.35,
-      relY: 0.2,
-      width: 100,
-      height: 40,
-      color: "white",
-      text: tipo
+
+    // Blocco 6: Aggiorna il puntatore 'next' del nodo sorgente (ifNodeIndex)
+    // affinché punti al nuovo nodo inserito (che ora è a 'insertionIndex').
+    if (ifNodeIndex !== -1) {
+      if (isIfArrow) {
+        if (ifArrowType === "T") flow.nodes[ifNodeIndex].next.true = insertionIndex.toString();
+        else flow.nodes[ifNodeIndex].next.false = insertionIndex.toString();
+      } else {
+        flow.nodes[ifNodeIndex].next = insertionIndex.toString();
+      }
+    }
+
+    // Blocco 7: Inserisce il corrispondente nodo visuale nell'array 'nodi'.
+    nodi.splice(insertionIndex, 0, {
+      relX: 0.35, relY: 0.2, width: 100, height: 40, color: "white", text: tipo
     });
 
+    // Blocco 8: Ricalcola le posizioni Y e ridisegna.
     calcoloY(nodi);
     draw(nodi);
     chiudiPopup();
-    console.log(flow)
   }
 
-  function calcoloY(nodi){
-    let start = 0.05
-    for(i=0;i<nodi.length;i++){
-      nodi[i].relY = start
-      start+=0.1
+
+  /**
+   * Ricalcola e assegna le posizioni Y relative (relY) a tutti i nodi visuali
+   * per distribuirli verticalmente in modo uniforme sul canvas.
+   */
+  function calcoloY(nodiArr) {
+    let currentRelY = 0.05; // Posizione Y relativa di partenza
+    const ySpacing = 0.05;  // Spaziatura verticale relativa tra i nodi
+    const ifAdditionalSpacing = 0.06
+    for (let i = 0; i < nodiArr.length; i++) {
+      nodiArr[i].relY = currentRelY; // Assegna la posizione Y calcolata al nodo corrente
+      let spacingForNextNode = (nodiArr[i].height / h) + ySpacing;
+      const currentNodeLogic = flow.nodes[i];
+      if (currentNodeLogic && currentNodeLogic.type === "if") {
+        spacingForNextNode += ifAdditionalSpacing;
+      }
+      currentRelY += spacingForNextNode; // Aggiorna currentRelY per il prossimo nodo
     }
   }
 
-  function chiudiEditPopup(){
+  /**
+   * Nasconde il popup utilizzato per modificare le informazioni di un nodo esistente.
+   */
+  function chiudiEditPopup() {
     document.getElementById("edit-node-popup").classList.remove("active");
   }
 
-  function run(){
-    executeFlow(flow)
+  /**
+   * Avvia l'esecuzione del flowchart.
+   * Chiama la funzione 'executeFlow' (definita in 'execute.js') passando la struttura logica 'flow'.
+   */
+  function run() {
+    executeFlow(flow);
   }
