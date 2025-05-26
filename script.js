@@ -62,7 +62,6 @@
     // Blocco 1: Disegna tutti i nodi (rettangoli e testo)
     for (let i = 0; i < forme.length; i++) {
       const node = forme[i];
- 
       const x0 = node.relX * w - node.width / 2;
       const y0 = node.relY * h - node.height / 2;
       const cx = x0 + node.width / 2;

@@ -9,9 +9,18 @@
     <body>
         <div id="container">
             <div id="toolbar">
-                <button>New</button>
-                <button>Open</button>
-                <button>Save</button>
+                <button onclick="
+                if(!saved && !isEmpty()){
+                    document.getElementById('new-popup').classList = 'active'
+                    document.getElementById('overlay').classList = 'active'
+                }
+                else{
+                    location.reload()
+                }
+                ">New</button>
+                <button onclick="document.getElementById('fileInput').click()">Open</button>
+                <input type="file" id="fileInput" style="display:none;" accept=".json" multiple="false" />
+                <button onclick="saveFile()">Save</button>
                 <button onclick="run()">Run</button>
             </div>
             <div id="main">
@@ -75,6 +84,26 @@
                         <button id="save-node-info" onclick="salvaInfo()">Salva</button>
                         <button id="close-edit-popup" onclick="chiudiEditPopup()">Chiudi</button>
                     </div>
+
+                    <div id="save-popup">
+                        <h3>Save project</h3>
+                        <label for="filename-input">File name (without extension):</label><br>
+                        <input type="text" id="filename-input" placeholder="Insert file name"><br><br>
+                        <button id="save-confirm-btn" onclick="save(flow,document.getElementById('filename-input').value)">Save</button>
+                        <button id="save-cancel-btn" onclick="closeSavePopup()">Cancel</button>
+                    </div>
+
+                    <div id="new-popup" >
+                        <p>Do you want to continue without saving?</p>
+                        <button id="save-btn" onclick="document.getElementById('new-popup').classList.remove('active')
+                        document.getElementById('overlay').classList.remove('active')
+                        saveFile()">Save</button>
+                        <button id="continue-btn" onclick="location.reload()">New</button>
+                        <button id="cancel-btn" onclick="document.getElementById('overlay').classList.remove('active');
+                        document.getElementById('new-popup').classList.remove('active');">Cancel</button>
+                    </div>
+
+                    <div id="overlay" ></div>
                 </div>
             </div>
             
@@ -82,5 +111,6 @@
         
         <script src="script.js"></script>
         <script src="execute.js"></script>
+        <script src="saveOpen.js"></script>
     </body>
 </html>
