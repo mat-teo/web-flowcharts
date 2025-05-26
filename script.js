@@ -56,67 +56,7 @@
    * Disegna l'intero flowchart (nodi e frecce) sul canvas.
    * @param {Array} forme - Array degli oggetti nodo visuali da disegnare.
    */
-  function draw(forme) {
-    ctx.clearRect(0, 0, w, h); // Pulisce il canvas
-    frecce = []; // Resetta l'array delle frecce, che verranno ricalcolate
-
-    // Blocco 1: Disegna tutti i nodi (rettangoli e testo)
-    for (let i = 0; i < forme.length; i++) {
-      const node = forme[i];
-      const x0 = node.relX * w - node.width / 2;
-      const y0 = node.relY * h - node.height / 2;
-      const cx = x0 + node.width / 2;
-      const cy = y0 + node.height / 2;
-
-      ctx.fillStyle = node.color;
-      ctx.fillRect(x0, y0, node.width, node.height);
-      ctx.strokeStyle = "black";
-      ctx.strokeRect(x0, y0, node.width, node.height);
-      //scirtta dentro 
-      if (node.text) {
-        let toWrite = node.text;
-        if (flow.nodes[i].type != "end" && flow.nodes[i].type != "start") {
-          toWrite += ":\n" + (flow.nodes[i].info || "empty");
-        }
-        ctx.font = `14px Arial`;
-        ctx.fillStyle = "black";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(toWrite, cx, cy);
-      }
-    }
-
-    // Blocco 2: Disegna le frecce di collegamento tra i nodi
-    // Questo avviene dopo aver disegnato tutti i nodi per avere le loro posizioni corrette.
-    for (let i = 0; i < forme.length; i++) {
-      const node = forme[i]; // Nodo visuale di partenza
-      const logic = flow.nodes[i]; // Nodo logico corrispondente
-
-      const xMid = node.relX * w;
-      const yMid = node.relY * h;
-      const nodeHeight = node.height;
-
-      // Gestisce le frecce per i nodi "if" (con rami true/false)
-      if (logic.type === "if" && typeof logic.next === "object") {
-        const trueIndex = parseInt(logic.next.true);
-        const falseIndex = parseInt(logic.next.false);
-        if (!isNaN(trueIndex) && forme[trueIndex]) {
-          drawArrowFromRight(node, forme[trueIndex], "T");
-        }
-        if (!isNaN(falseIndex) && forme[falseIndex]) {
-          drawArrowFromLeft(node, forme[falseIndex], "F");
-        }
-      // Gestisce le frecce per gli altri tipi di nodi (con una singola uscita 'next')
-      } else if (typeof logic.next === "string") {
-        const nextIndex = parseInt(logic.next);
-        if (!isNaN(nextIndex) && forme[nextIndex]) {
-          const target = forme[nextIndex];
-          drawLine(xMid, yMid + nodeHeight / 2, target.relX * w, target.relY * h - target.height / 2, true);
-        }
-      }
-    }
-  }
-
+  
   /**
    * Disegna una linea tra due punti.
    * Se 'salva' è true, la linea viene aggiunta all'array 'frecce' per la rilevazione dei click.
@@ -169,50 +109,296 @@
    * Disegna una freccia "a gomito" dal lato destro del nodo 'from' al nodo 'to',
    * tipicamente usata per il ramo 'true' di un nodo 'if', con un'etichetta.
    */
-  function drawArrowFromRight(from, to, label) {
+  // In script.js
+
+/**
+ * Disegna una linea tra due punti.
+ * Se 'salva' è true, la linea viene aggiunta all'array 'frecce' per la rilevazione dei click,
+ * includendo informazioni sul nodo di partenza, di destinazione e il tipo di freccia.
+ * @param {number} x1 - Coordinata X del punto di inizio.
+ * @param {number} y1 - Coordinata Y del punto di inizio.
+ * @param {number} x2 - Coordinata X del punto di fine.
+ * @param {number} y2 - Coordinata Y del punto di fine.
+ * @param {boolean} salva - Se true, salva la freccia nell'array 'frecce'.
+ * @param {number} fromNodeIndex - Indice del nodo di partenza (da flow.nodes).
+ * @param {number} toNodeIndex - Indice del nodo di destinazione (da flow.nodes).
+ * @param {string} arrowType - Tipo di freccia ('normal', 'if_true', 'if_false').
+ */
+function drawLine(x1, y1, x2, y2, salva, fromNodeIndex, toNodeIndex, arrowType) {
+  if (salva) {
+    frecce.push({
+      inzioX: x1, inzioY: y1, fineX: x2, fineY: y2,
+      id: frecce.length, // L'ID univoco della freccia
+      fromNodeIndex: fromNodeIndex, // Indice del nodo di partenza nella logica flow.nodes
+      toNodeIndex: toNodeIndex,     // Indice del nodo di destinazione nella logica flow.nodes
+      type: arrowType         // Tipo di freccia: 'normal', 'if_true', 'if_false'
+    });
+  }
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+/**
+ * Disegna l'intero flowchart (nodi e frecce) sul canvas.
+ * @param {Array} forme - Array degli oggetti nodo visuali da disegnare.
+ */
+function draw(forme) {
+  ctx.clearRect(0, 0, w, h); // Pulisce il canvas
+  frecce = []; // Resetta l'array delle frecce, che verranno ricalcolate
+
+  // Blocco 1: Disegna tutti i nodi (rettangoli e testo)
+  for (let i = 0; i < forme.length; i++) {
+    const node = forme[i];
+    const x0 = node.relX * w - node.width / 2;
+    const y0 = node.relY * h - node.height / 2;
+    const cx = x0 + node.width / 2;
+    const cy = y0 + node.height / 2;
+
+    ctx.fillStyle = node.color;
+    ctx.fillRect(x0, y0, node.width, node.height);
+    ctx.strokeStyle = "black";
+    ctx.strokeRect(x0, y0, node.width, node.height);
+    //scirtta dentro
+    if (node.text) {
+      let toWrite = node.text;
+      if (flow.nodes[i] && (flow.nodes[i].type != "end" && flow.nodes[i].type != "start")) { // Aggiunto controllo flow.nodes[i]
+        toWrite += ":\n" + (flow.nodes[i].info || "empty");
+      }
+      ctx.font = `14px Arial`;
+      ctx.fillStyle = "black";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(toWrite, cx, cy);
+    }
+  }
+
+  // Blocco 2: Disegna le frecce di collegamento tra i nodi
+  // Questo avviene dopo aver disegnato tutti i nodi per avere le loro posizioni corrette.
+  for (let i = 0; i < forme.length; i++) {
+    const node = forme[i]; // Nodo visuale di partenza
+    const logic = flow.nodes[i]; // Nodo logico corrispondente
+
+    if (!logic) continue; // Salta se il nodo logico non esiste (potrebbe accadere durante manipolazioni intense)
+
+    const xMid = node.relX * w;
+    const yMid = node.relY * h;
+    const nodeHeight = node.height;
+
+    // Gestisce le frecce per i nodi "if" (con rami true/false)
+    if (logic.type === "if" && typeof logic.next === "object") {
+      const trueIndex = parseInt(logic.next.true);
+      const falseIndex = parseInt(logic.next.false);
+      if (!isNaN(trueIndex) && forme[trueIndex]) {
+        // Passa l'indice del nodo 'if' (i) e l'indice del nodo target del ramo 'true'
+        drawArrowFromRight(node, forme[trueIndex], "T", i, trueIndex);
+      }
+      if (!isNaN(falseIndex) && forme[falseIndex]) {
+        // Passa l'indice del nodo 'if' (i) e l'indice del nodo target del ramo 'false'
+        drawArrowFromLeft(node, forme[falseIndex], "F", i, falseIndex);
+      }
+    // Gestisce le frecce per gli altri tipi di nodi (con una singola uscita 'next')
+    } else if (typeof logic.next === "string" && logic.next !== null) {
+      const nextIndex = parseInt(logic.next);
+      if (!isNaN(nextIndex) && forme[nextIndex]) {
+        const target = forme[nextIndex];
+        // Passa l'indice del nodo corrente (i) e l'indice del nodo successivo
+        drawLine(xMid, yMid + nodeHeight / 2, target.relX * w, target.relY * h - target.height / 2, true, i, nextIndex, 'normal');
+      }
+    }
+  }
+}
+
+/**
+ * Disegna una freccia "a gomito" dal lato destro del nodo 'from' al nodo 'to',
+ * tipicamente usata per il ramo 'true' di un nodo 'if', con un'etichetta.
+ * @param {object} from - Nodo visuale di partenza.
+ * @param {object} to - Nodo visuale di destinazione.
+ * @param {string} label - Etichetta da disegnare sulla freccia (es. "T").
+ * @param {number} fromNodeIndex - Indice del nodo di partenza in flow.nodes.
+ * @param {number} toNodeIndex - Indice del nodo di destinazione in flow.nodes.
+ */
+function drawArrowFromRight(from, to, label, fromNodeIndex, toNodeIndex) {
     const startX = from.relX * w + from.width / 2;
     const startY = from.relY * h;
-    const midX = startX + 40;
-    const endX = to.relX * w;
-    const endY = to.relY * h - to.height / 2 -30;
+    const midX = startX + 40; // Punto X del gomito
+    const targetAttachX = to.relX * w; // Coordinata X centrale del nodo target
+    const targetAttachY = to.relY * h - to.height / 2; // Bordo superiore del nodo target
+    const horizontalLineY = targetAttachY - 10; // Y per il segmento orizzontale vicino al cerchio/target (10 è raggio cerchio)
 
-    drawLine(startX, startY, midX, startY, false);
-    drawLine(midX, startY, midX, endY, true); // Segmento verticale, salvato per click
-    drawLine(midX, endY, endX + 11, endY, false); // Leggero offset per il cerchio
+    drawLine(startX, startY, midX, startY, false); // Segmento orizzontale dal nodo sorgente
+    // Il segmento verticale è quello principale cliccabile per le frecce 'if'
+    drawLine(midX, startY, midX, horizontalLineY, true, fromNodeIndex, toNodeIndex, 'if_true');
+    drawLine(midX, horizontalLineY, targetAttachX, horizontalLineY, false); // Segmento orizzontale verso il nodo target
 
     // Disegna un cerchio nel punto di connessione e l'etichetta
-    const circleCenterX = endX;
-    const circleCenterY = endY;
     ctx.beginPath();
-    ctx.arc(circleCenterX, circleCenterY, 10, 0, 2 * Math.PI, false);
+    ctx.arc(targetAttachX, horizontalLineY, 10, 0, 2 * Math.PI, false); // Cerchio di connessione
     ctx.stroke();
-    ctx.fillStyle = "green";
+    ctx.fillStyle = "green"; // Colore per il testo del ramo True
     ctx.font = "12px Arial";
-    ctx.fillText(label, midX + 5, (startY + endY) / 2);
+    ctx.textAlign = "center";
+    // Etichetta posizionata a metà del segmento verticale
+    ctx.fillText(label, midX, startY + (horizontalLineY - startY) / 2);
 
-    drawLine(endX , endY +10, endX, endY +30, true); // Leggero offset per il cerchio
-  }
+    // Linea finale dal cerchio al bordo superiore del nodo target
+    drawLine(targetAttachX, horizontalLineY, targetAttachX, targetAttachY, false);
+}
 
-  /**
-   * Disegna una freccia "a gomito" dal lato sinistro del nodo 'from' al nodo 'to',
-   * tipicamente usata per il ramo 'false' di un nodo 'if', con un'etichetta.
-   */
-  function drawArrowFromLeft(from, to, label) {
+/**
+ * Disegna una freccia "a gomito" dal lato sinistro del nodo 'from' al nodo 'to',
+ * tipicamente usata per il ramo 'false' di un nodo 'if', con un'etichetta.
+ * @param {object} from - Nodo visuale di partenza.
+ * @param {object} to - Nodo visuale di destinazione.
+ * @param {string} label - Etichetta da disegnare sulla freccia (es. "F").
+ * @param {number} fromNodeIndex - Indice del nodo di partenza in flow.nodes.
+ * @param {number} toNodeIndex - Indice del nodo di destinazione in flow.nodes.
+ */
+function drawArrowFromLeft(from, to, label, fromNodeIndex, toNodeIndex) {
     const startX = from.relX * w - from.width / 2;
     const startY = from.relY * h;
-    const midX = startX - 40;
-    const endX = to.relX * w;
-    const endY = to.relY * h - to.height / 2 -30 ;
+    const midX = startX - 40; // Punto X del gomito
+    const targetAttachX = to.relX * w; // Coordinata X centrale del nodo target
+    const targetAttachY = to.relY * h - to.height / 2; // Bordo superiore del nodo target
+    const horizontalLineY = targetAttachY - 10; // Y per il segmento orizzontale vicino al cerchio/target
 
-    drawLine(startX, startY, midX, startY, false);
-    drawLine(midX, startY, midX, endY, true); // Segmento verticale, salvato per click
-    drawLine(midX, endY, endX - 11, endY, false);
+    drawLine(startX, startY, midX, startY, false); // Segmento orizzontale dal nodo sorgente
+    // Il segmento verticale è quello principale cliccabile
+    drawLine(midX, startY, midX, horizontalLineY, true, fromNodeIndex, toNodeIndex, 'if_false');
+    drawLine(midX, horizontalLineY, targetAttachX, horizontalLineY, false); // Segmento orizzontale verso il nodo target
 
-    ctx.fillStyle = "red";
+    // Disegna un cerchio nel punto di connessione e l'etichetta
+    ctx.beginPath();
+    ctx.arc(targetAttachX, horizontalLineY, 10, 0, 2 * Math.PI, false); // Cerchio di connessione
+    ctx.stroke();
+    ctx.fillStyle = "red"; // Colore per il testo del ramo False
     ctx.font = "12px Arial";
-    ctx.fillText(label, midX - 10, (startY + endY) / 2);
-  }
+    ctx.textAlign = "center";
+    // Etichetta posizionata a metà del segmento verticale
+    ctx.fillText(label, midX, startY + (horizontalLineY - startY) / 2);
+    
+    // Linea finale dal cerchio al bordo superiore del nodo target
+    drawLine(targetAttachX, horizontalLineY, targetAttachX, targetAttachY, false);
+}
 
+
+/**
+ * Inserisce un nuovo nodo logico e visuale nel flowchart quando l'utente clicca su una freccia.
+ * @param {string} tipo - Il tipo di nodo da inserire (es. "input", "print", "if").
+ */
+function inserisciNodo(tipo) {
+    saved = false; // Segna che ci sono modifiche non salvate
+    if (frecceSelected === -1 || !frecce[frecceSelected]) {
+        console.error("Nessuna freccia selezionata o freccia non valida.");
+        chiudiPopup();
+        return;
+    }
+
+    const clickedArrow = frecce[frecceSelected];
+    const parentNodeIndex = clickedArrow.fromNodeIndex;
+    const originalTargetNodeIndex = clickedArrow.toNodeIndex;
+
+    // Il nuovo nodo verrà inserito logicamente nell'array flow.nodes.
+    // Una strategia comune è inserirlo all'indice del target originale.
+    // Il target originale e tutti i nodi successivi verranno scalati di uno.
+    const newActualNodeIndex = originalTargetNodeIndex;
+
+    let newNodeLogic;
+    if (tipo === "if") {
+        newNodeLogic = {
+            "type": "if",
+            "info": "", // L'utente la modificherà in seguito
+            "next": {
+                // Entrambi i rami del nuovo "if" puntano inizialmente al target originale della freccia cliccata.
+                // Dopo l'inserimento, questo sarà (newActualNodeIndex + 1).
+                "true": (newActualNodeIndex + 1).toString(),
+                "false": (newActualNodeIndex + 1).toString()
+            }
+        };
+    } else {
+        newNodeLogic = {
+            "type": tipo,
+            "info": "", // L'utente la modificherà
+            // Il nuovo nodo punta al target originale della freccia cliccata.
+            // Dopo l'inserimento, questo sarà (newActualNodeIndex + 1).
+            "next": (newActualNodeIndex + 1).toString()
+        };
+    }
+
+    // Inserisci il nuovo nodo logico in flow.nodes
+    flow.nodes.splice(newActualNodeIndex, 0, newNodeLogic);
+
+    // Aggiorna i puntatori 'next' (e 'true'/'false') di TUTTI i nodi a causa dello splice.
+    // Qualsiasi puntatore che era >= newActualNodeIndex deve essere incrementato.
+    for (let i = 0; i < flow.nodes.length; i++) {
+        let n = flow.nodes[i];
+
+        // Non modificare il nodo appena inserito (newNodeLogic) in questo ciclo, 
+        // i suoi puntatori 'next' sono già stati impostati correttamente
+        // in relazione alla sua nuova posizione e ai nodi che lo seguono.
+        if (i === newActualNodeIndex && n === newNodeLogic) {
+            continue; 
+        }
+        
+        if (n.type === "if" && typeof n.next === "object") {
+            let oldTrue = parseInt(n.next.true);
+            let oldFalse = parseInt(n.next.false);
+
+            // Se il puntatore true puntava a un indice che ora è scalato
+            if (!isNaN(oldTrue) && oldTrue >= newActualNodeIndex) {
+                n.next.true = (oldTrue + 1).toString();
+            }
+            // Se il puntatore false puntava a un indice che ora è scalato
+            if (!isNaN(oldFalse) && oldFalse >= newActualNodeIndex) {
+                n.next.false = (oldFalse + 1).toString();
+            }
+        } else if (typeof n.next === "string" && n.next !== null) {
+            let oldNext = parseInt(n.next);
+            // Se il puntatore next puntava a un indice che ora è scalato
+            if (!isNaN(oldNext) && oldNext >= newActualNodeIndex) {
+                n.next = (oldNext + 1).toString();
+            }
+        }
+    }
+    
+    // Ora, aggiorna il nodo genitore (da cui partiva la freccia cliccata) per puntare al nuovo nodo.
+    // L'indice parentNodeIndex è ancora valido perché l'inserimento è avvenuto a newActualNodeIndex (originalTargetNodeIndex).
+    // Se parentNodeIndex < newActualNodeIndex, il suo indice non è cambiato.
+    // Se parentNodeIndex == newActualNodeIndex, sarebbe un caso strano (nodo che punta a se stesso e si inserisce "prima"?).
+    // Normalmente, parentNodeIndex sarà < newActualNodeIndex.
+    const parentNodeToUpdate = flow.nodes[parentNodeIndex]; 
+    if (parentNodeToUpdate) { // Controllo di sicurezza
+        if (clickedArrow.type === 'normal') {
+            parentNodeToUpdate.next = newActualNodeIndex.toString();
+        } else if (clickedArrow.type === 'if_true') {
+            parentNodeToUpdate.next.true = newActualNodeIndex.toString();
+        } else if (clickedArrow.type === 'if_false') {
+            parentNodeToUpdate.next.false = newActualNodeIndex.toString();
+        }
+    }
+
+
+    // Inserisci il nodo visuale
+    const parentVisualNode = nodi[parentNodeIndex];
+    nodi.splice(newActualNodeIndex, 0, {
+        relX: parentVisualNode ? parentVisualNode.relX : 0.35,
+        relY: 0, // calcoloY lo correggerà
+        width: 100,
+        height: 40,
+        color: "white",
+        text: tipo.charAt(0).toUpperCase() + tipo.slice(1)
+    });
+
+    calcoloY(nodi);
+    draw(nodi);
+    chiudiPopup();
+    frecceSelected = -1; // Resetta la selezione
+
+    // console.log("Nuovo flow:", JSON.parse(JSON.stringify(flow.nodes)));
+}
   /**
    * Gestisce il click su un nodo.
    * Se un nodo (non 'start' o 'end') è cliccato, apre il popup per modificarne le informazioni.
@@ -410,190 +596,7 @@
    * Questa funzione è complessa per la gestione degli indici e dei puntatori 'next'.
    * @param {string} tipo - Il tipo di nodo da inserire (es. "input", "print", "if").
    */
-  function inserisciNodo(tipo) {
-    console.log(flow)
-    let newNodeIndex = frecceSelected + 1;
-    let nodo;
-    let isIfArrow = false;
-    let ifArrowType = null; // "T" per true, "F" per false, null per non-if
-
-    // Dopo il ciclo, imposta il flag e il tipo
-    let ifNodeIndex = null;
-    if (frecceSelected !== -1) {
-      for (let i = 0; i < nodi.length; i++) {
-        let node = flow.nodes[i];
-        if (node.type === "if" && typeof node.next === "object") {
-          const trueIndex = parseInt(node.next.true);
-          const falseIndex = parseInt(node.next.false);
-          let count = 0;
-          for (let j = 0; j < i; j++) {
-            let n = flow.nodes[j];
-            if (n.type === "if" && typeof n.next === "object") {
-              count += 2;
-            } else if (typeof n.next === "string" && n.next !== null) {
-              count += 1;
-            }
-          }
-          if (frecceSelected === count) {
-            isIfArrow = true;
-            ifArrowType = "T";
-            ifNodeIndex = i;
-            break;
-          } else if (frecceSelected === count + 1) {
-            isIfArrow = true;
-            ifArrowType = "F";
-            ifNodeIndex = i;
-            break;
-          }
-        } else if (typeof node.next === "string" && node.next !== null) {
-          let count = 0;
-          for (let j = 0; j < i; j++) {
-            let n = flow.nodes[j];
-            if (n.type === "if" && typeof n.next === "object") {
-              count += 2;
-            } else if (typeof n.next === "string" && n.next !== null) {
-              count += 1;
-            }
-          }
-          if (frecceSelected === count) {
-            isIfArrow = false;
-            ifArrowType = null;
-            ifNodeIndex = i;
-            break;
-          }
-        }
-      }
-    }
-    
-    if (tipo === "if") {
-      // crea il nodo if con due next separati, anche se puntano allo stesso
-      let nextTrue = (newNodeIndex + 1).toString();
-      let nextFalse = (newNodeIndex + 2 < flow.nodes.length)
-        ? (newNodeIndex + 2).toString()
-        : nextTrue; // fallback: se manca, punta come true
-
-      if(isIfArrow){
-        if(ifArrowType == "T"){
-          nextTrue = flow.nodes[ifNodeIndex].next.true
-          nextFalse = flow.nodes[ifNodeIndex].next.true
-        }else{
-          nextTrue = flow.nodes[ifNodeIndex].next.false
-          nextFalse = flow.nodes[ifNodeIndex].next.false
-        }
-      }
-
-      nodo = {
-        "type": "if",
-        "info": "",
-        "next": {
-          "true": nextTrue,
-          "false": nextFalse
-        }
-      };
-    } else {
-      if(isIfArrow){
-        if(ifArrowType=="T"){
-          nodo = {
-                "type": tipo,
-                "info": "",
-                "next": (parseInt(flow.nodes[ifNodeIndex].next.true) + 1).toString()
-              };
-        }else{
-          nodo = {
-                "type": tipo,
-                "info": "",
-                "next": (parseInt(flow.nodes[ifNodeIndex].next.false)+1).toString()
-              };
-        }
-      }else{
-        nodo = {
-          "type": tipo,
-          "info": "",
-          "next": (newNodeIndex + 1).toString()
-        };
-      }
-    }
-
-    // Inserisci il nodo nel flow
-    let realIndex;
-    if(isIfArrow){
-      if(ifArrowType=="T"){
-        realIndex=ifNodeIndex+1;
-      }else{
-        realIndex=parseInt(flow.nodes[ifNodeIndex].next.false)
-      }
-    }else{
-      realIndex=newNodeIndex
-    }
-    flow.nodes.splice(realIndex, 0, nodo);
-
-    if(isIfArrow){
-      if(ifArrowType=="T"){
-        flow.nodes[ifNodeIndex].next.true = realIndex.toString()
-        flow.nodes[ifNodeIndex].next.false = (parseInt(flow.nodes[ifNodeIndex].next.false) + 1).toString() 
-      }else{
-        flow.nodes[ifNodeIndex].next.false = realIndex.toString()
-        let lastTrue = flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next;
-        if(typeof lastTrue != "object"){
-          flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next= (parseInt(flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next) + 1).toString()
-        }else{
-          flow.nodes[ifNodeIndex].next.true = (parseInt(flow.nodes[ifNodeIndex].next.true) + 1).toString()
-        }
-      }
-    }
-    // Aggiorna tutti i riferimenti next nei nodi successivi
-    for (let i = newNodeIndex + 1; i < flow.nodes.length; i++) {
-      let n = flow.nodes[i];
-      if (n.type === "if" && typeof n.next === "object") {
-        if (n.next.true) n.next.true = (parseInt(n.next.true) + 1).toString();
-        if (n.next.false) n.next.false = (parseInt(n.next.false) + 1).toString();
-      } else if (typeof n.next === "string" && n.next !== null) {
-        n.next = (parseInt(n.next) + 1).toString();
-      }
-    }
-
-<<<<<<< HEAD
-
-    // Blocco 6: Aggiorna il puntatore 'next' del nodo sorgente (ifNodeIndex)
-    // affinché punti al nuovo nodo inserito (che ora è a 'insertionIndex').
-    if (ifNodeIndex !== -1) {
-      if (isIfArrow) {
-        if (ifArrowType === "T") flow.nodes[ifNodeIndex].next.true = insertionIndex.toString();
-        else flow.nodes[ifNodeIndex].next.false = insertionIndex.toString();
-      } else {
-        flow.nodes[ifNodeIndex].next = insertionIndex.toString();
-      }
-    }
-    let valX =0.35;
-
-    if(isIfArrow){
-      valX =0.30;
-
-    }
-    // Blocco 7: Inserisce il corrispondente nodo visuale nell'array 'nodi'.
-    nodi.splice(insertionIndex, 0, {
-      relX: valX, relY: 0.2, width: 100, height: 40, color: "white", text: tipo
-    });
-    console.log(flow)
-    // Blocco 8: Ricalcola le posizioni Y e ridisegna.
-=======
-    // Inserisci graficamente il nodo
-    nodi.splice(realIndex, 0, {
-      relX: 0.35,
-      relY: 0.2,
-      width: 100,
-      height: 40,
-      color: "white",
-      text: tipo
-    });
-
->>>>>>> ed16c6536a0c003579a2ae02f37846ebdaafb761
-    calcoloY(nodi);
-    draw(nodi);
-    chiudiPopup();
-    console.log(flow)
-  }
-
+  
 
   /**
    * Ricalcola e assegna le posizioni Y relative (relY) a tutti i nodi visuali
