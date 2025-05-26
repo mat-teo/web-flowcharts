@@ -625,3 +625,8 @@ function isEmpty(){
       return false
     }
   }
+
+  function closeSavePopup(){
+   document.getElementById("save-popup").classList.remove('active');
+   document.getElementById("overlay").classList.remove('active');
+  }
