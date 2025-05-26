@@ -8,7 +8,8 @@
   canvas.height = container.offsetHeight;
   let w = canvas.width;
   let h = canvas.height;
-
+  
+  let saved
   // Struttura dati principale per la logica del flowchart
   let flow = {
     "nodes": [
@@ -384,6 +385,7 @@
    * Inizializza il flowchart di base, disegna e imposta gli event listener.
    */
   window.onload = function () {
+    saved=false;
     window.addEventListener("resize", resizeCanvas);
 
     // Creazione dei nodi visuali iniziali (Start e End)
