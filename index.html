@@ -22,6 +22,7 @@
                 <input type="file" id="fileInput" style="display:none;" accept=".json" multiple="false" />
                 <button onclick="saveFile()">Save</button>
                 <button onclick="run()">Run</button>
+                <button onclick="openPythonPopup()">Export as Python</button>
             </div>
             <div id="main">
                 <div id="sidebar">
@@ -123,6 +124,16 @@
                             <button id="console-send">Send</button>
                         </div>
                     </div>
+                    
+                    <div id="python-popup">
+                        <h3>Python Translation</h3>
+                        <textarea id="python-code" rows="15" cols="60" readonly></textarea>
+                        <div >
+                            <button onclick="copyPythonCode()" id="copy-python-btn">Copy</button>
+                            <button onclick="downloadPythonCode()" id="download-python-btn">Download</button>
+                            <button onclick="closePythonPopup()" id="close-python-btn">Close</button>
+                        </div>
+                    </div>
 
                     <div id="overlay" ></div>
                 </div>
@@ -133,5 +144,6 @@
         <script src="script.js"></script>
         <script src="execute.js"></script>
         <script src="saveOpen.js"></script>
+        <script src="pythonTranslation.js"></script>
     </body>
 </html>
