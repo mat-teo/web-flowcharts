@@ -628,9 +628,7 @@ function inserisciNodo(tipo) {
    * Avvia l'esecuzione del flowchart.
    * Chiama la funzione 'executeFlow' (definita in 'execute.js') passando la struttura logica 'flow'.
    */
-  function run() {
-    executeFlow(flow);
-  }
+ 
 
    function saveFile(){
     document.getElementById("save-popup").classList ="active";
