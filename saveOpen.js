@@ -36,3 +36,7 @@ async function save(json,name){
     }
     saved=true;
 }
+
+function openFile(file){
+
+}
