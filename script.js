@@ -411,101 +411,161 @@
    * @param {string} tipo - Il tipo di nodo da inserire (es. "input", "print", "if").
    */
   function inserisciNodo(tipo) {
-    // Blocco 1: Identifica il nodo sorgente (ifNodeIndex) e il tipo di ramo (ifArrowType)
-    // della freccia selezionata (frecceSelected). Questo determina da dove parte la freccia cliccata.
+    console.log(flow)
+    let newNodeIndex = frecceSelected + 1;
+    let nodo;
     let isIfArrow = false;
-    let ifArrowType = null;
-    let ifNodeIndex = -1; // Indice del nodo logico sorgente della freccia cliccata
-    if (frecceSelected !== -1) {
-      let currentArrowCount = 0;
-      for (let i = 0; i < flow.nodes.length; i++) {
-        let nodeLogic = flow.nodes[i];
-        if (nodeLogic.type === "end") continue;
+    let ifArrowType = null; // "T" per true, "F" per false, null per non-if
 
-        if (nodeLogic.type === "if" && typeof nodeLogic.next === "object") {
-          if (currentArrowCount === frecceSelected) { 
-            isIfArrow = true; ifArrowType = "T"; 
-            ifNodeIndex = i; 
-            break; 
+    // Dopo il ciclo, imposta il flag e il tipo
+    let ifNodeIndex = null;
+    if (frecceSelected !== -1) {
+      for (let i = 0; i < nodi.length; i++) {
+        let node = flow.nodes[i];
+        if (node.type === "if" && typeof node.next === "object") {
+          const trueIndex = parseInt(node.next.true);
+          const falseIndex = parseInt(node.next.false);
+          let count = 0;
+          for (let j = 0; j < i; j++) {
+            let n = flow.nodes[j];
+            if (n.type === "if" && typeof n.next === "object") {
+              count += 2;
+            } else if (typeof n.next === "string" && n.next !== null) {
+              count += 1;
+            }
           }
-          currentArrowCount++;
-          if (currentArrowCount === frecceSelected) { 
-            isIfArrow = true; ifArrowType = "F"; 
-            ifNodeIndex = i; 
-            break; 
+          if (frecceSelected === count) {
+            isIfArrow = true;
+            ifArrowType = "T";
+            ifNodeIndex = i;
+            break;
+          } else if (frecceSelected === count + 1) {
+            isIfArrow = true;
+            ifArrowType = "F";
+            ifNodeIndex = i;
+            break;
           }
-          currentArrowCount++;
-        } else if (typeof nodeLogic.next === "string" && nodeLogic.next !== null) {
-          if (currentArrowCount === frecceSelected) { isIfArrow = false; ifArrowType = null; ifNodeIndex = i; break; }
-          currentArrowCount++;
+        } else if (typeof node.next === "string" && node.next !== null) {
+          let count = 0;
+          for (let j = 0; j < i; j++) {
+            let n = flow.nodes[j];
+            if (n.type === "if" && typeof n.next === "object") {
+              count += 2;
+            } else if (typeof n.next === "string" && n.next !== null) {
+              count += 1;
+            }
+          }
+          if (frecceSelected === count) {
+            isIfArrow = false;
+            ifArrowType = null;
+            ifNodeIndex = i;
+            break;
+          }
         }
       }
     }
-    if (ifNodeIndex === -1 && frecceSelected !== -1) { chiudiPopup(); return; } // Errore nel trovare il sorgente
-
-    // Blocco 2: Determina l'indice di inserimento (insertionIndex).
-    // È l'indice del nodo che era la destinazione originale della freccia cliccata.
-    let originalTargetIndexStr;
-    if (isIfArrow) {
-      originalTargetIndexStr = (ifArrowType === "T") ? flow.nodes[ifNodeIndex].next.true : flow.nodes[ifNodeIndex].next.false;
-    } else {
-      originalTargetIndexStr = (ifNodeIndex !== -1) ? flow.nodes[ifNodeIndex].next : flow.nodes[flow.nodes.length - 1].next;
-    }
-    let insertionIndex = parseInt(originalTargetIndexStr);
-
-    // Blocco 3: Crea il nuovo oggetto nodo logico ('nodo').
-    // I suoi puntatori 'next' punteranno al nodo che era la destinazione originale.
-    let nuovoNodoLogico;
+    
     if (tipo === "if") {
-      nuovoNodoLogico = { type: "if", info: "", next: { true: insertionIndex.toString(), false: insertionIndex.toString() } };
+      // crea il nodo if con due next separati, anche se puntano allo stesso
+      let nextTrue = (newNodeIndex + 1).toString();
+      let nextFalse = (newNodeIndex + 2 < flow.nodes.length)
+        ? (newNodeIndex + 2).toString()
+        : nextTrue; // fallback: se manca, punta come true
+
+      if(isIfArrow){
+        if(ifArrowType == "T"){
+          nextTrue = flow.nodes[ifNodeIndex].next.true
+          nextFalse = flow.nodes[ifNodeIndex].next.true
+        }else{
+          nextTrue = flow.nodes[ifNodeIndex].next.false
+          nextFalse = flow.nodes[ifNodeIndex].next.false
+        }
+      }
+
+      nodo = {
+        "type": "if",
+        "info": "",
+        "next": {
+          "true": nextTrue,
+          "false": nextFalse
+        }
+      };
     } else {
-      nuovoNodoLogico = { type: tipo, info: "", next: insertionIndex.toString() };
+      if(isIfArrow){
+        if(ifArrowType=="T"){
+          nodo = {
+                "type": tipo,
+                "info": "",
+                "next": (parseInt(flow.nodes[ifNodeIndex].next.true) + 1).toString()
+              };
+        }else{
+          nodo = {
+                "type": tipo,
+                "info": "",
+                "next": (parseInt(flow.nodes[ifNodeIndex].next.false)+1).toString()
+              };
+        }
+      }else{
+        nodo = {
+          "type": tipo,
+          "info": "",
+          "next": (newNodeIndex + 1).toString()
+        };
+      }
     }
 
-    // Blocco 4: Inserisce il nuovo nodo logico nell'array 'flow.nodes'.
-    flow.nodes.splice(insertionIndex, 0, nuovoNodoLogico);
+    // Inserisci il nodo nel flow
+    let realIndex;
+    if(isIfArrow){
+      if(ifArrowType=="T"){
+        realIndex=ifNodeIndex+1;
+      }else{
+        realIndex=parseInt(flow.nodes[ifNodeIndex].next.false)
+      }
+    }else{
+      realIndex=newNodeIndex
+    }
+    flow.nodes.splice(realIndex, 0, nodo);
 
-    // Blocco 5: Aggiorna i puntatori 'next' di tutti i nodi successivi all'inserimento
-    // e del nodo appena inserito per riflettere lo shift degli indici.
-    for (let i = insertionIndex + 1; i < flow.nodes.length; i++) { // Nodi shiftati
+    if(isIfArrow){
+      if(ifArrowType=="T"){
+        flow.nodes[ifNodeIndex].next.true = realIndex.toString()
+        flow.nodes[ifNodeIndex].next.false = (parseInt(flow.nodes[ifNodeIndex].next.false) + 1).toString() 
+      }else{
+        flow.nodes[ifNodeIndex].next.false = realIndex.toString()
+        let lastTrue = flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next;
+        if(typeof lastTrue != "object"){
+          flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next= (parseInt(flow.nodes[parseInt(flow.nodes[ifNodeIndex].next.false)-1].next) + 1).toString()
+        }else{
+          flow.nodes[ifNodeIndex].next.true = (parseInt(flow.nodes[ifNodeIndex].next.true) + 1).toString()
+        }
+      }
+    }
+    // Aggiorna tutti i riferimenti next nei nodi successivi
+    for (let i = newNodeIndex + 1; i < flow.nodes.length; i++) {
       let n = flow.nodes[i];
       if (n.type === "if" && typeof n.next === "object") {
-        if (n.next.true !== null) n.next.true = (parseInt(n.next.true) + 1).toString();
-        if (n.next.false !== null) n.next.false = (parseInt(n.next.false) + 1).toString();
+        if (n.next.true) n.next.true = (parseInt(n.next.true) + 1).toString();
+        if (n.next.false) n.next.false = (parseInt(n.next.false) + 1).toString();
       } else if (typeof n.next === "string" && n.next !== null) {
         n.next = (parseInt(n.next) + 1).toString();
       }
     }
-    // Aggiorna i puntatori del nodo appena inserito (che è a flow.nodes[insertionIndex])
-    const nodoAppenaInserito = flow.nodes[insertionIndex];
-    if (nodoAppenaInserito.type === "if") {
-      nodoAppenaInserito.next.true = (parseInt(nodoAppenaInserito.next.true) + 1).toString();
-      nodoAppenaInserito.next.false = (parseInt(nodoAppenaInserito.next.false) + 1).toString();
-    } else if (nodoAppenaInserito.next !== null) {
-      nodoAppenaInserito.next = (parseInt(nodoAppenaInserito.next) + 1).toString();
-    }
 
-
-    // Blocco 6: Aggiorna il puntatore 'next' del nodo sorgente (ifNodeIndex)
-    // affinché punti al nuovo nodo inserito (che ora è a 'insertionIndex').
-    if (ifNodeIndex !== -1) {
-      if (isIfArrow) {
-        if (ifArrowType === "T") flow.nodes[ifNodeIndex].next.true = insertionIndex.toString();
-        else flow.nodes[ifNodeIndex].next.false = insertionIndex.toString();
-      } else {
-        flow.nodes[ifNodeIndex].next = insertionIndex.toString();
-      }
-    }
-
-    // Blocco 7: Inserisce il corrispondente nodo visuale nell'array 'nodi'.
-    nodi.splice(insertionIndex, 0, {
-      relX: 0.35, relY: 0.2, width: 100, height: 40, color: "white", text: tipo
+    // Inserisci graficamente il nodo
+    nodi.splice(realIndex, 0, {
+      relX: 0.35,
+      relY: 0.2,
+      width: 100,
+      height: 40,
+      color: "white",
+      text: tipo
     });
 
-    // Blocco 8: Ricalcola le posizioni Y e ridisegna.
     calcoloY(nodi);
     draw(nodi);
     chiudiPopup();
+    console.log(flow)
   }
 
 
