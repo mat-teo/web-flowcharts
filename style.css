@@ -80,6 +80,122 @@ html, body {
   display: none;
 }
 
+#console-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 480px;
+  max-width: 98vw;
+  width: 600px;
+  background: #23213a;
+  border: 2px solid #6200ea;
+  border-radius: 0.6rem;
+  box-shadow: 0 0.5rem 2rem rgba(98,0,234,0.18), 0 1px 4px rgba(0,0,0,0.13);
+  padding: 1.5rem 2rem 1.2rem 2rem;
+  z-index: 1400;
+  display: none;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+#console-popup.active {
+  display: flex;
+}
+
+#console-buttons {
+  display: flex;
+  gap: 0.7rem;
+  margin-bottom: 0.8rem;
+}
+
+#console-buttons button {
+  background: #ede7f6;
+  color: #6200ea;
+  border: 1.5px solid #b39ddb;
+  border-radius: 0.3rem;
+  padding: 0.45rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  box-shadow: 0 1px 2px rgba(98,0,234,0.09);
+}
+
+#console-buttons button:hover {
+  background: #d1c4e9;
+  color: #3700b3;
+}
+
+#console-output {
+  background: #18162b;
+  color: #e0e0e0;
+  border: 1px solid #33305a;
+  border-radius: 0.3rem;
+  min-height: 120px;
+  max-height: 320px;
+  overflow-y: auto;
+  font-family: 'Fira Mono', 'Consolas', monospace;
+  font-size: 1rem;
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.7rem;
+}
+
+#console-output p {
+  margin: 0;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+#console-input-section {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+#console-input {
+  flex: 1 1 0;
+  padding: 0.5rem 1rem;
+  border: 1.5px solid #b39ddb;
+  border-radius: 0.3rem;
+  font-size: 1rem;
+  background: #f7f5ff;
+  color: #23213a;
+  transition: border 0.18s;
+  pointer-events: none;
+  background-color: #e0e0e0;
+  color: #888;
+}
+
+#console-input.active {
+  pointer-events: auto;
+  background-color: #f7f5ff;
+  color: #23213a;
+  border: 2px solid #6200ea;
+}
+
+#console-input:focus {
+  border-color: #6200ea;
+  outline: none;
+}
+
+#console-send {
+  background: #6200ea;
+  color: #fff;
+  border: none;
+  border-radius: 0.3rem;
+  padding: 0.5rem 1.3rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+  box-shadow: 0 1px 2px rgba(98,0,234,0.09);
+}
+
+#console-send:hover {
+  background: #3700b3;
+}
+
 #overlay.active {
   display: block;
 }
