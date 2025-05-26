@@ -10,9 +10,9 @@ function openPythonPopup(){
     const popup = document.getElementById('python-popup');
     popup.classList.add('active');
     document.getElementById('overlay').classList.add('active');
-    translateFlow();
     const codeContainer = document.getElementById('python-code');
     codeContainer.innerHTML = ''; // Clear previous content
+    translateFlow();
     codeContainer.value = codeLines.join('\n');
 }
 
@@ -96,6 +96,7 @@ function recreateIfBranches(ifNode){
     let falseBranch = parseInt(ifNode.next.false);
     let trueBranch = parseInt(ifNode.next.true);
     for(index = trueBranch; index < falseBranch; index++){
+        const node = flow.nodes[index];
         addLine(translateNode(node));
     }
     tabsCount--;
