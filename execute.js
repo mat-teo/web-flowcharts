@@ -24,14 +24,66 @@ this script is used to execute the flow:
     ]
 }
 */
-function executeFlow(json){
-    let currentNode = "0"; // start from the first node
+let currentNode = "0"; // start from the first node
+function run(){
+    document.getElementById('console-popup').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+}
+
+function closeConsole() {
+    document.getElementById('console-popup').classList.remove('active');
+    document.getElementById('overlay').classList.remove('active');
+}
+
+function resetFlow() {
+    currentNode = "0"; // Reset to the first node
+    const consoleOutput = document.getElementById('console-output');
+    printMessage("Flow resetted. Ready to execute again.");
+    const input = document.getElementById('console-input')
+    const btn = document.getElementById('console-send')
+    input.classList.remove('active');
+}
+
+async function executeStep(){
+  if(currentNode== null){
+    currentNode = "0"; // Reset to the first node if currentNode is null
+  }
+  const node = flow.nodes[parseInt(currentNode)];
+  currentNode = await executeNode(node,currentNode,flow.variables);
+}
+
+async function executeFlow(json){
+    console.log(json)
+    if(currentNode== null){
+      currentNode = "0"; // Reset to the first node if currentNode is null
+    }
     let variables = json.variables;
     while(currentNode != null){
-        const node = json.nodes[currentNode];
-        switch(node.type){
+        const node = json.nodes[parseInt(currentNode)];
+        currentNode = await executeNode(node,currentNode,variables);
+    }
+    
+}
+
+function printMessage(msg){
+    const consoleOutput = document.getElementById('console-output');
+    const messageElement = document.createElement('p');
+    messageElement.textContent = "> " +  msg;
+    consoleOutput.appendChild(messageElement);
+    consoleOutput.scrollTop = consoleOutput.scrollHeight; // Scroll to the bottom
+}
+
+function clearConsole() {
+    const consoleOutput = document.getElementById('console-output');
+    consoleOutput.innerHTML = ''; // Clear the console output
+    printMessage("Console cleared.");
+}
+
+async function executeNode(node,currentNode,variables){
+  switch(node.type){
             case "start":       // START NODE
                 console.log("Start\n");
+                printMessage("Start");
                 currentNode = node.next;
                 break;
             case "print": // PRINT NODE
@@ -91,12 +143,14 @@ function executeFlow(json){
                   }
                 }
                 console.log("Print: " + string);
+                printMessage(string);
                 currentNode = node.next;
                 break; 
               case "if": // IF NODE
                 let condition = node.info;
                 let expression = "";
                 console.log("If: " + condition);
+                printMessage("If: " + condition);
                 let isVar=false;
                 let variable="";
                 for (let j = 0; j < condition.length; j++) {
@@ -127,21 +181,30 @@ function executeFlow(json){
                 }
                 if (eval(expression)) {
                     console.log("If: " + condition + " is true");
+                    printMessage("If: " + condition + " is true");
                     currentNode = node.next.true;
                 } else {
                     console.log("If: " + condition + " is false");
+                    printMessage("If: " + condition + " is false");
                     currentNode =  node.next.false;
                 }
                 break;
 
               case "input": //INPUT NODE
                 console.log("Input: " + node.info);
-                getVariable(node.info,variables).value = inputVariable(node.info, getVariable(node.info,variables).type);
+                printMessage("Input: " + node.info);
+                if (!existVariable(node.info,variables)) {
+                    printMessage("Error - Variable " + node.info + " not declared.");
+                    currentNode = node.next;
+                    break;
+                }
+                getVariable(node.info,variables).value = await inputVariable(node.info, getVariable(node.info,variables).type);
                 currentNode = node.next;  
                 break;
 
               case "assign": // ASSIGN NODE
                 console.log("Assign: " + node.info);
+                printMessage("Assign: " + node.info)
                 let assignParts = node.info.split("=");
                 let varName = assignParts[0].trim();
                 let exp = assignParts[1].trim();
@@ -158,11 +221,11 @@ function executeFlow(json){
 
               case "end": // END NODE
                 console.log("End\n");
+                printMessage("End.");
                 currentNode = node.next;
                 break;
         }
-    }
-    
+        return currentNode
 }
 
 
@@ -231,8 +294,9 @@ function splitStrings(input) {
   return parts;
 }
 
-function inputVariable(name,type) {
-  const input = prompt(`Enter a value for ${name} (${type}):`);
+async function inputVariable(name,type) {
+ // const input = prompt(`Enter a value for ${name} (${type}):`);
+  const input = await askUserInput();
   if (input !== null) {
     switch (type) {
       case "int":
@@ -257,6 +321,38 @@ function inputVariable(name,type) {
     return null;
   }
 }
+
+function askUserInput(){
+  document.getElementById('console-input').value= "";
+  document.getElementById('console-input').classList.add('active');
+  return new Promise((resolve) => {
+    const inputElem = document.getElementById('console-input');
+    const sendBtn = document.getElementById('console-send');
+    const feedback = () => {
+      inputElem.classList.add('input-error');
+      setTimeout(() => inputElem.classList.remove('input-error'), 500);
+    };
+    const handler = () => {
+      const value = inputElem.value.trim();
+      if (value === "") {
+        feedback();
+        return;
+      }
+      sendBtn.removeEventListener('click', handler);
+      inputElem.removeEventListener('keydown', keyHandler);
+      inputElem.classList.remove('active');
+      resolve(value);
+    };
+    const keyHandler = (e) => {
+      if (e.key === 'Enter') {
+        handler();
+      }
+    };
+    sendBtn.addEventListener('click', handler);
+    inputElem.addEventListener('keydown', keyHandler);
+  });
+}
+
 
 function existVariable(vrbl,variables){
   for(i=0;i<variables.length;i++){

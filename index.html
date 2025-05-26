@@ -103,6 +103,27 @@
                         document.getElementById('new-popup').classList.remove('active');">Cancel</button>
                     </div>
 
+                    <div id="console-popup">
+                        <div id="console-buttons">
+                            <button onclick="(async () => {
+                                        await executeFlow(flow);
+                                    })();" id="console-exe">Execute</button>
+                            <button onclick="(async () => {
+                                        await executeStep();
+                                    })();" id="console-step">Step</button>
+                            <button onclick="resetFlow()" id="console-reset">Reset</button>
+                            <button onclick="clearConsole()" id="console-clear">Clear</button>
+                            <button onclick="closeConsole()" id="console-close">Close</button>
+                        </div>
+                        <div id="console-output" role="log">
+                            <p>> Console ready...</p>
+                        </div>
+                        <div id="console-input-section">
+                            <input type="text" id="console-input"  placeholder="Enter a value...">
+                            <button id="console-send">Send</button>
+                        </div>
+                    </div>
+
                     <div id="overlay" ></div>
                 </div>
             </div>
