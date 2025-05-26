@@ -496,12 +496,17 @@
         flow.nodes[ifNodeIndex].next = insertionIndex.toString();
       }
     }
+    let valX =0.35;
 
+    if(isIfArrow){
+      valX =0.30;
+
+    }
     // Blocco 7: Inserisce il corrispondente nodo visuale nell'array 'nodi'.
     nodi.splice(insertionIndex, 0, {
-      relX: 0.35, relY: 0.2, width: 100, height: 40, color: "white", text: tipo
+      relX: valX, relY: 0.2, width: 100, height: 40, color: "white", text: tipo
     });
-
+    console.log(flow)
     // Blocco 8: Ricalcola le posizioni Y e ridisegna.
     calcoloY(nodi);
     draw(nodi);
