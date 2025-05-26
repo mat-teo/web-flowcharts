@@ -81,6 +81,7 @@ function clearConsole() {
 
 async function executeNode(node,currentNode,variables){
   switch(node.type){
+    
             case "start":       // START NODE
                 console.log("Start\n");
                 printMessage("Start");
@@ -148,38 +149,10 @@ async function executeNode(node,currentNode,variables){
                 break; 
               case "if": // IF NODE
                 let condition = node.info;
-                let expression = "";
                 console.log("If: " + condition);
                 printMessage("If: " + condition);
-                let isVar=false;
-                let variable="";
-                for (let j = 0; j < condition.length; j++) {
-                    if (condition[j] == " ") {
-                        if(isVar){
-                          isVar=false;
-                          expression += getVariable(variable,variables).value.toString();
-                          variable="";
-                        }
-                        continue;
-                    } 
-                    if (!isNaN(condition[j]) || "+-*/<>!=.()".includes(condition[j])) {
-                        if(isVar){
-                          isVar=false;
-                          expression += getVariable(variable,variables).value.toString();
-                          variable="";
-                        }
-                        expression += condition[j];
-                    } else {
-                        isVar=true;
-                        variable += condition[j];
-                    }
-                    if (j == condition.length - 1 && isVar) {
-                        expression +=  getVariable(variable,variables).value.toString();
-                        isVar=false;
-                        variable="";
-                    }
-                }
-                if (eval(expression)) {
+                
+                if (checkCondition(condition, variables)) {
                     console.log("If: " + condition + " is true");
                     printMessage("If: " + condition + " is true");
                     currentNode = node.next.true;
@@ -189,7 +162,83 @@ async function executeNode(node,currentNode,variables){
                     currentNode =  node.next.false;
                 }
                 break;
+              case "while": // WHILE NODE
+                let whileCondition = node.info;
+                console.log("While: " + whileCondition);
+                printMessage("While: " + whileCondition);
+                if(checkCondition(whileCondition, variables)){
+                    console.log("While: " + whileCondition + " is true");
+                    printMessage("While: " + whileCondition + " is true");
+                    currentNode = node.next.true; // Go to the true branch
+                }else{
+                    console.log("While: " + whileCondition + " is false");
+                    printMessage("While: " + whileCondition + " is false");
+                    currentNode = node.next.false; // Go to the false branch
+                }
+                break;
+              case "do": // DO NODE
+                let doCondition = node.info;
+                console.log("Do: " + doCondition);
+                printMessage("Do: " + doCondition);
+                if(checkCondition(doCondition, variables)){
+                    console.log("Do: " + doCondition + " is true");
+                    printMessage("Do: " + doCondition + " is true");
+                    currentNode = node.next.true; // Go to the true branch
+                }else{
+                    console.log("Do: " + doCondition + " is false");
+                    printMessage("Do: " + doCondition + " is false");
+                    currentNode = node.next.false; // Go to the false branch
+                }
+                break;
+              case "for": // FOR NODE
+                let forParts = node.info.split(";");
+                if (forParts.length !== 3) {
+                    console.error("Invalid for loop syntax:", node.info);
+                    printMessage("Error - Invalid for loop syntax: " + node.info);
+                    currentNode = node.next;
+                    break;
+                }
+                
+                let init = forParts[0].trim();
+                let forcondition = forParts[1].trim();
+                let increment = forParts[2].trim();
 
+                let initParts = init.split("=");
+                if (initParts.length !== 2) {
+                    console.error("Invalid initialization syntax:", init);
+                    printMessage("Error - Invalid initialization syntax: " + init);
+                    currentNode = node.next;
+                    break;
+                }
+                // Execute initialization
+                variables.forEach(v => {
+                  // Replace variable names in the expression with their values
+                  // Use word boundaries to avoid partial replacements
+                  initParts[1] = initParts[1].replace(new RegExp(`\\b${v.name}\\b`, 'g'), v.value.toString());
+                });
+                getVariable(init[0],variables).value = eval(initParts[1]);
+
+                console.log("For: " + initParts[0] + " = " + getVariable(initParts[0],variables).value);
+                printMessage("For: " + initParts[0] + " = " + getVariable(initParts[0],variables).value);
+
+
+                initParts[1] = eval(initParts[1]).toString()
+                initParts[1] += "+"+increment;
+                flow.nodes[parseInt(currentNode)].info = initParts[0] + "=" + initParts[1] + ";" + forcondition + ";" + increment;
+                // Check condition
+                if (checkCondition(forcondition, variables)) {
+                    console.log("For Condition: " + forcondition + " is true");
+                    printMessage("For Condition: " + forcondition + " is true");
+                    currentNode = node.next.true; // Go to the true branch
+                } else {
+                    console.log("For Condition: " + forcondition + " is false");
+                    printMessage("For Condition: " + forcondition + " is false");
+                    currentNode = node.next.false; // Go to the false branch
+                }
+
+                
+                                
+                break;
               case "input": //INPUT NODE
                 console.log("Input: " + node.info);
                 printMessage("Input: " + node.info);
@@ -226,6 +275,49 @@ async function executeNode(node,currentNode,variables){
                 break;
         }
         return currentNode
+}
+
+function checkCondition(condition, variables) {
+    let expression = "";
+    let isVar = false;
+    let variable = "";
+
+    for (let j = 0; j < condition.length; j++) {
+        if (condition[j] == " ") {
+            if (isVar) {
+                isVar = false;
+                let v = getVariable(variable, variables);
+                expression += v ? v.value.toString() : variable;
+                variable = "";
+            }
+            continue;
+        }
+        if (!isNaN(condition[j]) || "+-*/<>!=.()".includes(condition[j])) {
+            if (isVar) {
+                isVar = false;
+                let v = getVariable(variable, variables);
+                expression += v ? v.value.toString() : variable;
+                variable = "";
+            }
+            expression += condition[j];
+        } else {
+            isVar = true;
+            variable += condition[j];
+        }
+        if (j == condition.length - 1 && isVar) {
+            let v = getVariable(variable, variables);
+            expression += v ? v.value.toString() : variable;
+            isVar = false;
+            variable = "";
+        }
+    }
+
+    try {
+        return eval(expression);
+    } catch (e) {
+        console.error("Invalid condition expression:", expression);
+        return false;
+    }
 }
 
 
