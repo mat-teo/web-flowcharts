@@ -542,3 +542,86 @@
   function run() {
     executeFlow(flow);
   }
+
+   function saveFile(){
+    document.getElementById("save-popup").classList ="active";
+    document.getElementById('overlay').classList = 'active'
+  }
+
+
+  document.getElementById('fileInput').addEventListener('change', (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target.result;
+      console.log("Contenuto file:", content);
+      try {
+        const json = JSON.parse(content);
+        // Qui puoi aggiornare il flow e i nodi, ad esempio:
+        flow = json;
+        // Aggiorna anche la rappresentazione grafica se necessario
+        // Ricostruisci i nodi grafici in base a flow.nodes
+        nodi = [];
+        for (let i = 0; i < flow.nodes.length; i++) {
+          let tipo = flow.nodes[i].type;
+          nodi.push({
+            relX: 0.35,
+            relY: 0.05 + i * 0.1,
+            width: 100,
+            height: 40,
+            color: "white",
+            text: tipo.charAt(0).toUpperCase() + tipo.slice(1)
+          });
+        }
+        while (tabVariabili.rows.length > 1) {
+          tabVariabili.deleteRow(1);
+        }
+        for (let i = 0; i < flow.variables.length; i++) {
+          inserisciRiga();
+          let riga = tabVariabili.rows[i + 1];
+          let varObj = flow.variables[i];
+          let cella1 = riga.cells[0].querySelector("input");
+          let cella2 = riga.cells[1].querySelector("select");
+          let cella3 = riga.cells[2].querySelector("input");
+          if (cella1) cella1.value = varObj.name;
+          if (cella2) cella2.value = varObj.type;
+          if (cella3) cella3.value = varObj.value;
+          riga.addEventListener("change", aggiungiVaribile);
+        }
+        if (tabVariabili.rows.length === flow.variables.length + 1) {
+          inserisciRiga();
+          let ultimaRiga = tabVariabili.rows[tabVariabili.rows.length - 1];
+          ultimaRiga.addEventListener("change", aggiungiVaribile);
+        }
+        calcoloY(nodi);
+        draw(nodi);
+      } catch (err) {
+        alert("Errore nel parsing del file JSON: " + err.message);
+      }
+      // Puoi chiamare qui una funzione per caricare il flusso, ad esempio:
+      // loadFlowFromJSON(content);
+    };
+    reader.readAsText(file);
+  }
+});
+
+
+ window.addEventListener('keydown', function(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
+      event.preventDefault();
+      if(!isEmpty() && !saved){
+        if (confirm("There are unsaved changes. Do you really want to reload the page?")) {
+          location.reload();
+        }
+      }
+    }
+  });
+
+function isEmpty(){
+    if(flow.nodes.length==2){
+      return true
+    }else{
+      return false
+    }
+  }
