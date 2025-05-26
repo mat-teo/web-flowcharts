@@ -571,7 +571,7 @@ function inserisciNodo(tipo) {
    * Inizializza il flowchart di base, disegna e imposta gli event listener.
    */
   window.onload = function () {
-    saved=false;
+    saved=true;
     window.addEventListener("resize", resizeCanvas);
 
     // Creazione dei nodi visuali iniziali (Start e End)
@@ -698,12 +698,13 @@ function inserisciNodo(tipo) {
 
  window.addEventListener('keydown', function(event) {
     if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
-      event.preventDefault();
       if(!isEmpty() && !saved){
+        event.preventDefault();
         if (confirm("There are unsaved changes. Do you really want to reload the page?")) {
           location.reload();
         }
       }
+      // Otherwise, allow the default reload
     }
   });
 
