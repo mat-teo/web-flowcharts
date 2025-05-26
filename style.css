@@ -147,6 +147,18 @@ html, body {
   word-break: break-word;
 }
 
+#console-output p.error {
+  color: #ff5252;
+  background: #2d1a1a;
+  border-left: 4px solid #ff5252;
+  padding: 0.3em 0.8em;
+  margin: 0.2em 0;
+  font-weight: bold;
+  font-family: 'Fira Mono', 'Consolas', monospace;
+  border-radius: 0.2em;
+  letter-spacing: 0.01em;
+}
+
 #console-input-section {
   display: flex;
   gap: 0.7rem;
@@ -166,6 +178,22 @@ html, body {
   background-color: #e0e0e0;
   color: #888;
 }
+
+#console-input.input-error {
+  border: 2px solid #c62828;
+  background-color: #ffebee;
+  color: #c62828;
+  animation: shake 0.18s 2;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+  100% { transform: translateX(0); }
+}
+
 
 #console-input.active {
   pointer-events: auto;
