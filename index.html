@@ -9,7 +9,7 @@
     <body>
         <div id="container">
             <div id="toolbar">
-                <button onclick="
+                <button id="new-btn" onclick="
                 if(!saved && !isEmpty()){
                     document.getElementById('new-popup').classList = 'active'
                     document.getElementById('overlay').classList = 'active'
@@ -18,11 +18,13 @@
                     location.reload()
                 }
                 ">New</button>
-                <button onclick="document.getElementById('fileInput').click()">Open</button>
+                <button id="open-btn" onclick="document.getElementById('fileInput').click()">Open</button>
                 <input type="file" id="fileInput" style="display:none;" accept=".json" multiple="false" />
-                <button onclick="saveFile()">Save</button>
-                <button onclick="run()">Run</button>
-                <button onclick="openPythonPopup()">Export as Python</button>
+                <button id="save-btn" onclick="saveFile()">Save</button>
+                <button id="run-btn" onclick="run()">Run</button>
+                <button id="export-python-btn" onclick="openPythonPopup()">Export as Python</button>
+
+                <button id="help-btn"  onclick="startTutorial()">Help</button>
             </div>
             <div id="main">
                 <div id="sidebar">
@@ -36,17 +38,17 @@
                         </tr>
                         <tr>
                             <td>
-                                <input class="inputVariable" type ="text">
+                                <input class="inputVariable" data-tour-id="step-insert-name" type ="text">
                             </td>
                             <td>
-                                <select class="inputVariable">
+                                <select class="inputVariable"  data-tour-id="step-insert-type">
                                     <option value="int">Integer</option>
                                     <option value="float">Float</option>
                                     <option value="string">String</option>
                                 </select>
                             </td>
                             <td>
-                                <input class="inputVariable" type ="text">
+                                <input class="inputVariable" data-tour-id="step-insert-value" type ="text">
                             </td>
                         </tr>
                     </table>
@@ -145,5 +147,8 @@
         <script src="execute.js"></script>
         <script src="saveOpen.js"></script>
         <script src="pythonTranslation.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js/dist/css/shepherd.css" />
+        <script src="https://cdn.jsdelivr.net/npm/shepherd.js/dist/js/shepherd.min.js"></script>
+        <script src="tutorial.js"></script>
     </body>
 </html>
