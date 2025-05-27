@@ -953,3 +953,27 @@ html, body {
   background: #b39ddb;
   border-radius: 4px;
 }
+#logo {
+  height: 100%;
+  max-height: 3.2vw;
+  min-height: 40px;
+  width: auto;
+  vertical-align: middle;
+  margin-left: 0;         /* Nessun margine a sinistra */
+  margin-right: 1.2rem;   /* Margine solo a destra */
+  transition: filter 0.18s, transform 0.18s;
+  filter: drop-shadow(0 2px 8px rgba(98,0,234,0.08));
+  float: left;            /* Allinea il logo a sinistra */
+}
+
+#logo:hover {
+  filter: drop-shadow(0 4px 16px rgba(98,0,234,0.18)) brightness(1.08);
+  transform: scale(1.04) rotate(-2deg);
+  cursor: pointer;
+}
+
+#toolbar button:hover {
+  filter: drop-shadow(0 4px 16px rgba(98,0,234,0.18)) brightness(1.08);
+  transform: scale(1.04) rotate(-2deg);
+  cursor: pointer;
+}
