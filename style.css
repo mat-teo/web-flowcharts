@@ -74,9 +74,11 @@ html, body {
 }
 
 #main {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   flex: 1;
   overflow: hidden;
+  min-width: 0;
 }
 
 #sidebar {
@@ -748,6 +750,23 @@ th {
   text-align: left;
   min-height: 2.4rem;
 }
+/* Assicura che #credits-section sia sempre in fondo alla pagina, sotto #container */
+#container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+#main {
+  flex: 1 0 auto;
+}
+
+#credits-section {
+  flex-shrink: 0;
+  order: 2;
+  position: relative;
+  z-index: 1;
+}
 #credits-section {
   width: 100%;
   background: #6200ea; /* viola pieno */
@@ -795,12 +814,6 @@ html, body {
   /* Rimuovi overflow: hidden qui */
 }
 
-/* Il canvas scrolla solo al suo interno */
-#canvas-container {
-  overflow: auto;
-  height: 100%;
-  max-height: 100vh;
-}
 
 /* Il main non deve bloccare lo scroll globale */
 #main {
@@ -913,20 +926,22 @@ html, body {
   font-size: 0.95em;
   margin: 0.2em 0;
 }
-
-/* Miglioramento stile sidebar */
 #sidebar {
+  resize: horizontal;
+  overflow: auto;
   background: linear-gradient(135deg, #ede7f6 0%, #eeeeff 100%);
   border-right: 2px solid #b39ddb;
   box-shadow: 2px 0 12px rgba(98,0,234,0.07);
   padding: 1.2rem 1rem 0.8rem 1.2rem;
-  min-width: 290px;
-  max-width: 420px;
+  min-width: 220px;
+  max-width: 520px;
   width: 22vw;
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
   transition: box-shadow 0.18s, background 0.18s;
+  grid-column: 1;
+  min-height: 0;
 }
 
 #sidebar h2, #sidebar h3 {

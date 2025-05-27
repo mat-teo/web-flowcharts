@@ -417,6 +417,7 @@ async function inputVariable(name,type) {
           feedback();
           return inputVariable(name, type);
         }
+        printMessage(input);
         return parseInt(input);
       case "float":
         if (isNaN(input)) {
@@ -424,8 +425,10 @@ async function inputVariable(name,type) {
           feedback();
           return inputVariable(name, type);
         }
+        printMessage(input);
         return parseFloat(input);
       case "string":
+        printMessage(input);
         return input;
     }
   } else {
