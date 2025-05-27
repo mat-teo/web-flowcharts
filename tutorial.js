@@ -19,10 +19,21 @@ tour.addStep({
         { text: 'Next', action: tour.next }
     ]
 });
-
+tour.addStep({
+    id: 'table-info',
+    text: 'This table is dedicated to declaring variables. By entering information in ALL the cells of a row, you add a new variable.',
+    attachTo: {
+        element:  'table',
+        on: 'right'
+    },
+    buttons: [
+        { text: 'Back', action: tour.back },
+        { text: 'Next', action: tour.next }
+    ]
+});
 tour.addStep({
     id: 'new-var',
-    text: 'Click here to add a new variable, entering its name.',
+    text: 'In the first cell you can chose the name of your variable.',
     attachTo: {
         element: '[data-tour-id="step-insert-name"]',
         on: 'bottom'
@@ -74,8 +85,8 @@ tour.addStep({
   id: 'arrows-use',
   text: 'You can click on the arrows to add new blocks.',
   when: {
-    show: () => {resizeCanvas(); pulsingFreccia(0, 10000);},
-    hide: () => resizeCanvas()
+    show: () => {resizeCanvas(); pulsingFreccia(0, 7000);},
+    hide: () => {resizeCanvas(); pulseActive = false;}
   },
   attachTo: {
     element: '#canvas',
@@ -91,8 +102,8 @@ tour.addStep({
   id: 'nodes-use',
   text: 'And you can click on the blocks to edit them (Start and End are not editable).',
   when: {
-    show: () => {resizeCanvas(); pulsingNodo(0, 10000);},
-    hide: () => resizeCanvas()
+    show: () => {resizeCanvas(); pulsingNodo(1, 5000);},
+    hide: () => {resizeCanvas(); pulseNodoActive = false;}
   },
   attachTo: {
     element: '#canvas'
@@ -241,44 +252,41 @@ function pulsingFreccia(index, duration = 3000) {
   requestAnimationFrame(animate);
 }
 
-let pulseNodeActive = false;
+let pulseNodoActive = true; // Bool globale per controllare il pulsing
 
 function pulsingNodo(index, duration = 3000) {
     if (nodi.length === 0 || !nodi[index]) return;
-
+    if (nodi[index].text === 'Start' || nodi[index].text === 'End') return; // Non animare Start e End
     const nodo = nodi[index];
-    if(nodo.type === 'start' || nodo.type === 'end') return; // Non pulsare su Start o End
+    const originalColor = nodo.color || "white";
+    const highlightColor = "orange";
     const startTime = performance.now();
-    pulseNodeActive = true;
+    let active = true;
 
     function animate(time) {
-        if (!pulseNodeActive) return;
-
-        const elapsed = time - startTime;
-        if (elapsed > duration) {
-            pulseNodeActive = false;
-            resizeCanvas(); // Pulizia e ridisegno normale
+        if (!active || !pulseNodoActive) {
+            nodo.color = originalColor;
+            resizeCanvas();
             return;
         }
 
-        resizeCanvas(); // Cancella e ridisegna tutto normalmente
+        const elapsed = time - startTime;
+        if (elapsed > duration) {
+            nodo.color = originalColor;
+            resizeCanvas();
+            return;
+        }
 
-        // Calcola spessore oscillante tra 2 e 6
-        const thickness = 2 + Math.abs(Math.sin(elapsed / 200)) * 4;
-
-        // Disegna il bordo pulsante del nodo (assumendo rettangolo)
-        ctx.save();
-        ctx.beginPath();
-        ctx.strokeStyle = "red";
-        ctx.lineWidth = thickness;
-        ctx.setLineDash([10, 5]);
-        ctx.rect(nodo.x, nodo.y, nodo.width, nodo.height);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.restore();
+        // Calcola colore pulsante (oscilla tra highlight e originale)
+        const t = Math.abs(Math.sin(elapsed / 200));
+        nodo.color = t > 0.5 ? highlightColor : originalColor;
+        resizeCanvas();
 
         requestAnimationFrame(animate);
     }
 
     requestAnimationFrame(animate);
+
+    // Stop pulsing if needed externally
+    return () => { active = false; nodo.color = originalColor; resizeCanvas(); };
 }

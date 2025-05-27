@@ -748,3 +748,208 @@ th {
   text-align: left;
   min-height: 2.4rem;
 }
+#credits-section {
+  width: 100%;
+  background: #6200ea; /* viola pieno */
+  color: #fff;
+  border-top: 2px solid #6200ea;
+  padding: 1.2rem 0 1.2rem 0;
+  text-align: center;
+  font-size: 1rem;
+  margin-top: auto;
+  box-shadow: 0 -2px 8px rgba(98,0,234,0.04);
+}
+
+#credits-section strong {
+  color: #fff;
+  font-size: 1.1rem;
+  letter-spacing: 0.01em;
+}
+
+#credits-section a {
+  color: #fff;
+  text-decoration: underline;
+  transition: color 0.18s;
+}
+
+#credits-section a:hover {
+  color: #c62828;
+  text-decoration: underline wavy;
+}
+
+#credits-section small {
+  display: block;
+  margin-top: 0.5em;
+  color: #e0e0e0;
+  font-size: 0.95em;
+}
+/* Permetti lo scroll verticale globale per vedere il #credits-section */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f9;
+  color: #333;
+  box-sizing: border-box;
+  /* Rimuovi overflow: hidden qui */
+}
+
+/* Il canvas scrolla solo al suo interno */
+#canvas-container {
+  overflow: auto;
+  height: 100%;
+  max-height: 100vh;
+}
+
+/* Il main non deve bloccare lo scroll globale */
+#main {
+  overflow: visible;
+}
+#github-logo {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 0.5em 0 0;
+  text-decoration: none !important;
+}
+
+#github-logo img {
+  vertical-align: middle;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: 24px;
+  height: 24px;
+  transition: box-shadow 0.18s, border 0.18s;
+}
+
+#github-logo:hover img {
+  box-shadow: 0 2px 8px rgba(98,0,234,0.13);
+  border: 1.5px solid #6200ea;
+  background: #fff;
+}
+
+#github-links {
+  display: inline-block;
+  margin: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+
+#github-links img {
+  vertical-align: middle;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: 24px;
+  height: 24px;
+  transition: box-shadow 0.18s, border 0.18s;
+}
+
+#github-links img:hover {
+  box-shadow: 0 2px 8px rgba(98,0,234,0.13);
+  border: 1.5px solid #6200ea;
+  background: #fff;
+}
+
+/* Miglioramento stile tabella variabili */
+#tabVariabili {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #f7f5ff;
+  box-shadow: 0 2px 8px rgba(98,0,234,0.06);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 1.2rem;
+  font-size: 1rem;
+  transition: box-shadow 0.18s;
+}
+
+#tabVariabili th, #tabVariabili td {
+  border: 1px solid #b39ddb;
+  padding: 0.3rem 0.5rem;
+  background: #fff;
+  font-size: clamp(0.9rem, 0.4rem + 0.8vw, 1.1rem);
+}
+
+#tabVariabili th {
+  background: #ede7f6;
+  color: #6200ea;
+  font-weight: bold;
+  border-bottom: 2px solid #6200ea;
+  letter-spacing: 0.01em;
+}
+
+#tabVariabili tr:not(:last-child):hover {
+  background: #f3eaff;
+  transition: background 0.18s;
+}
+
+#tabVariabili input.inputVariable,
+#tabVariabili select.inputVariable {
+  background: #f7f5ff;
+  border: 1px solid #b39ddb;
+  border-radius: 0.25rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 1rem;
+  transition: border 0.18s, background 0.18s;
+}
+
+#tabVariabili input.inputVariable:focus,
+#tabVariabili select.inputVariable:focus {
+  border-color: #6200ea;
+  background: #fff;
+  outline: none;
+}
+
+#tabVariabili .error-message {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #c62828;
+  border-radius: 0.25rem;
+  padding: 0.2em 0.5em;
+  font-size: 0.95em;
+  margin: 0.2em 0;
+}
+
+/* Miglioramento stile sidebar */
+#sidebar {
+  background: linear-gradient(135deg, #ede7f6 0%, #eeeeff 100%);
+  border-right: 2px solid #b39ddb;
+  box-shadow: 2px 0 12px rgba(98,0,234,0.07);
+  padding: 1.2rem 1rem 0.8rem 1.2rem;
+  min-width: 290px;
+  max-width: 420px;
+  width: 22vw;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  transition: box-shadow 0.18s, background 0.18s;
+}
+
+#sidebar h2, #sidebar h3 {
+  color: #6200ea;
+  margin-top: 0;
+  margin-bottom: 0.7em;
+  font-weight: bold;
+  letter-spacing: 0.01em;
+}
+
+#sidebar label,
+#sidebar .section-title {
+  color: #3700b3;
+  font-weight: 600;
+  margin-bottom: 0.4em;
+  font-size: 1.05em;
+}
+
+#sidebar::-webkit-scrollbar {
+  width: 8px;
+  background: #ede7f6;
+}
+#sidebar::-webkit-scrollbar-thumb {
+  background: #b39ddb;
+  border-radius: 4px;
+}
