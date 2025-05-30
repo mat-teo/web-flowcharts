@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>BaseFlow</title>
         <link rel="stylesheet" href="style.css">
-        <link rel="icon" type="image/png" href="icon.png" />
+        <link rel="icon" type="image/png" href="img/icon.png" />
         <link rel="manifest" href="manifest.json">
     </head>
     <body>
@@ -18,7 +18,7 @@
         <div id="container">
             <div id="toolbar">
 
-            <img id="logo" src="logoBaseFlow.png" alt="BaseFlow Logo">
+            <img id="logo" src="img/logoBaseFlow.png" alt="BaseFlow Logo">
 
             <button id="new-btn" onclick="
             if(!saved && !isEmpty()){
@@ -96,6 +96,7 @@
                 <h3>Edit Node</h3>
                 <input type="text" id="edit-node-input" placeholder="Enter node information">
                 <button id="save-node-info" onclick="salvaInfo()">Save</button>
+                <button id="save-node-info" onclick="deleteNode()">Delete</button>
                 <button id="close-edit-popup" onclick="chiudiEditPopup()">Close</button>
                 </div>
 
@@ -195,11 +196,11 @@
         </footer>
         
         <script src="script.js"></script>
-        <script src="execute.js"></script>
-        <script src="saveOpen.js"></script>
-        <script src="pythonTranslation.js"></script>
+        <script src="js/execute.js"></script>
+        <script src="js/saveOpen.js"></script>
+        <script src="js/pythonTranslation.js"></script>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js/dist/css/shepherd.css" />
         <script src="https://cdn.jsdelivr.net/npm/shepherd.js/dist/js/shepherd.min.js"></script>
-        <script src="tutorial.js"></script>
+        <script src="js/tutorial.js"></script>
     </body>
 </html>

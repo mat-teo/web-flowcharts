@@ -7,13 +7,13 @@ self.addEventListener('install', event => {
       '/',
       'index.html',
       'script.js',
-      'execute.js',
-      'pythonTranslation.js',
-      'saveOpen.js',
-      'tutorial.js',
+      'js/execute.js',
+      'js/pythonTranslation.js',
+      'js/saveOpen.js',
+      'js/tutorial.js',
       'style.css',
-      'icon.png',
-      'logoBaseFlow.png',
+      'img/icon.png',
+      'img/logoBaseFlow.png',
       'manifest.json'
     ];
 

@@ -557,6 +557,9 @@ function inserisciNodo(tipo) {
     ["int", "float", "string"].forEach(val => {
       let option = document.createElement("option");
       option.value = val; option.textContent = val.charAt(0).toUpperCase() + val.slice(1);
+      if(val=="int"){
+        option.textContent = "Integer"
+      }
       selectTipo.appendChild(option);
     });
     cell2.appendChild(selectTipo);
@@ -717,4 +720,20 @@ function isEmpty(){
   function closeSavePopup(){
    document.getElementById("save-popup").classList.remove('active');
    document.getElementById("overlay").classList.remove('active');
+  }
+
+  function deleteNode(){
+    flow.nodes.splice(nodoSelected,1);
+    let current = nodoSelected;
+    while(flow.nodes[current].next != null){
+      if(typeof flow.nodes[current].next == "object"){
+        flow.nodes[current].next = {"true":(parseInt(flow.nodes[current].next.true) - 1).toString(), "false":(parseInt(flow.nodes[current].next.false) - 1).toString()};
+      }else{
+        flow.nodes[current].next = (parseInt(flow.nodes[current].next) - 1).toString();
+      }
+      current++;
+    }
+    nodi.splice(nodoSelected,1);
+    resizeCanvas();
+    chiudiEditPopup();
   }
