@@ -9,15 +9,15 @@ this script is used to execute the flow:
 
  json structure example:
  {
-  "nodes": {
-    "0": { "type": "start", "info": "", "next": "1" },
-    "1": { "type": "input", "info": "x", "next": "2" },
-    "2": { "type": "input", "info": "y", "next": "3" },
-    "3": { "type": "if", "info": "y != 0", "next": { "true": "4", "false": "5" } },
-    "4": { "type": "print", "info": "x / y", "next": "6" },
-    "5": { "type": "print", "info": "'can't divide by 0'", "next": "6" },
-    "6": { "type": "end", "info": "", "next": "" }
-  },
+  "nodes": [
+    { "type": "start", "info": "", "next": "1" },
+    { "type": "input", "info": "x", "next": "2" },
+    { "type": "input", "info": "y", "next": "3" },
+    { "type": "if", "info": "y != 0", "next": { "true": "4", "false": "5" } },
+    { "type": "print", "info": "x / y", "next": "6" },
+    { "type": "print", "info": "'can't divide by 0'", "next": "6" },
+    { "type": "end", "info": "", "next": "" }
+  ],
     "variables": [
     {"name": "x", type": "int", "value": 0},
     {"name": "y", "type": "int", "value": 0}
@@ -104,7 +104,7 @@ async function executeNode(node,currentNode,variables){
                 string="";
                 parts = splitStrings(node.info);
                 for (let i = 0; i < parts.length; i++) {
-                  if (parts[i].startsWith("'")) {
+                  if (parts[i].startsWith("'") || parts[i].startsWith('"') ) {
                     string += parts[i].substring(1, parts[i].length - 1);
                   } else {
                     let expression = "";
@@ -112,7 +112,7 @@ async function executeNode(node,currentNode,variables){
                     let variable = "";
                     for (let j = 0; j < parts[i].length; j++) {
                       if (parts[i][j] == " ") {
-                        if (isVar && variable !== "" && variable !== "'") {
+                        if (isVar && variable !== "" && variable !== "'" && variable !== '"') {
                           let v = getVariable(variable, variables);
                           if (v) {
                             expression += v.value.toString();
@@ -125,7 +125,7 @@ async function executeNode(node,currentNode,variables){
                         continue;
                       }
                       if (!isNaN(parts[i][j]) || "+-*/".includes(parts[i][j])) {
-                        if (isVar && variable !== "" && variable !== "'") {
+                        if (isVar && variable !== "" && variable !== "'" && variable !== '"') {
                           let v = getVariable(variable, variables);
                           if (v) {
                             expression += v.value.toString();
@@ -141,7 +141,7 @@ async function executeNode(node,currentNode,variables){
                         variable += parts[i][j];
                       }
                       if (isVar && j == parts[i].length - 1) {
-                        if (variable !== "" && variable !== "'") {
+                        if (variable !== "" && variable !== "'" && variable !== '"') {
                           let v = getVariable(variable, variables);
                           if (v) {
                             expression += v.value.toString();
@@ -329,7 +329,7 @@ function checkCondition(condition, variables) {
     }
 
     try {
-        return eval(expression);
+        return eval(!!(expression));
     } catch (e) {
         throwError("in condition: " + expression + ". " + e.message);
         return {};
@@ -346,7 +346,7 @@ function splitStrings(input) {
   while (i < input.length) {
     const char = input[i];
 
-    if (char === "'") {
+    if (char === "'" || char === '"') {
       if (isExpression) {
         isExpression = false;
       } else {
@@ -358,7 +358,7 @@ function splitStrings(input) {
 
       while (i < input.length) {
         buffer += input[i];
-        if (input[i] === "'") {
+        if (input[i] === "'" || input[i] === '"') {
           isExpression = false; 
           i++;
           break;
@@ -376,7 +376,7 @@ function splitStrings(input) {
         let j = i + 1;
         while (j < input.length && input[j] === ' ') j++;
 
-        if (input[j] === "'") {
+        if (input[j] === "'" || input[j] === '"') {
           if (buffer.trim() !== "") {
             parts.push(buffer.trim());
           }

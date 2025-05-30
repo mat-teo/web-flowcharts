@@ -13,7 +13,20 @@ function openPythonPopup(){
     const codeContainer = document.getElementById('python-code');
     codeContainer.innerHTML = ''; // Clear previous content
     translateFlow();
-    codeContainer.value = codeLines.join('\n');
+    const hasCode = codeLines.some(line => line.trim() !== '');
+     const now = new Date();
+    const formattedDate = (now.getMonth() + 1).toString().padStart(2, '0') + '/' +
+                      now.getDate().toString().padStart(2, '0') + '/' +
+                      now.getFullYear();
+    if(hasCode){
+        if (codeLines.length > 0 && codeLines[0].startsWith("Error")) {
+            codeContainer.value = "# " + formattedDate + "\n# Code from BaseFlow\n\n# " + codeLines[0];
+        } else {
+            codeContainer.value = "# " + formattedDate  + "\n# Code from BaseFlow\n" +  codeLines.join('\n');
+        }
+    }else{
+        codeContainer.value = "# Empty flowchart"
+    }
 }
 
 function closePythonPopup(){
@@ -70,8 +83,16 @@ function translateNode(node){
         case 'end':
             return '';
         case 'assign':
+            if(node.info == ""){
+                codeLines[0] = ("Error: node " + node.type + " is empty. Please edit its informations to translate the chart into Python");
+                return '';
+            }
             return node.info;
         case 'input':
+            if(node.info == ""){
+                codeLines[0] = ("Error: node " + node.type + " is empty. Please edit its informations to translate the chart into Python");
+                return '';
+            }
             const variable = getVariable(node.info,flow.variables);
             switch(variable.type) {
                 case 'string':
@@ -82,8 +103,16 @@ function translateNode(node){
                     return variable.name + " = float(input('Insert a float for " + variable.name + "'))";
             }
         case 'print':
+            if(node.info == ""){
+                codeLines[0] = "Error: node " + node.type + " is empty. Please edit its informations to translate the chart into Python";
+                return '';
+            }
             return 'print(' + node.info + ')';
         case 'if':
+            if(node.info == ""){
+                codeLines[0] = ("Error: node " + node.type + " is empty. Please edit its informations to translate the chart into Python");
+                return '';
+            }
             addLine('');
             addLine('if ' + node.info + ':');
             tabsCount++;
