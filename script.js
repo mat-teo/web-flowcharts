@@ -664,6 +664,7 @@ else { // parentVisualNode non trovato
         // Apre il popup di modifica solo per nodi che non siano 'start' o 'end'
         if (flow.nodes[i].type != "start" && flow.nodes[i].type != "end") {
           document.getElementById("edit-node-popup").classList.add("active");
+          document.getElementById("edit-node-title").innerHTML = "Edit " + flow.nodes[i].type +" node"
           document.getElementById("edit-node-input").value = flow.nodes[i].info || "";
         }
         nodoSelected = i; // Memorizza l'indice del nodo
@@ -799,6 +800,9 @@ else { // parentVisualNode non trovato
     ["int", "float", "string"].forEach(val => {
       let option = document.createElement("option");
       option.value = val; option.textContent = val.charAt(0).toUpperCase() + val.slice(1);
+      if(val=="int"){
+        option.textContent = "Integer"
+      }
       selectTipo.appendChild(option);
     });
     cell2.appendChild(selectTipo);
@@ -1096,4 +1100,20 @@ function isEmpty(){
   function closeSavePopup(){
    document.getElementById("save-popup").classList.remove('active');
    document.getElementById("overlay").classList.remove('active');
+  }
+
+  function deleteNode(){
+    flow.nodes.splice(nodoSelected,1);
+    let current = nodoSelected;
+    while(flow.nodes[current].next != null){
+      if(typeof flow.nodes[current].next == "object"){
+        flow.nodes[current].next = {"true":(parseInt(flow.nodes[current].next.true) - 1).toString(), "false":(parseInt(flow.nodes[current].next.false) - 1).toString()};
+      }else{
+        flow.nodes[current].next = (parseInt(flow.nodes[current].next) - 1).toString();
+      }
+      current++;
+    }
+    nodi.splice(nodoSelected,1);
+    resizeCanvas();
+    chiudiEditPopup();
   }

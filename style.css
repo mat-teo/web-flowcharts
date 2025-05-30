@@ -543,6 +543,7 @@ canvas {
   outline: none;
 }
 
+
 #edit-node-popup button {
   margin: 0 0.5rem;
   padding: 0.5rem 1.3rem;
@@ -556,6 +557,11 @@ canvas {
   transition: background 0.2s, color 0.2s;
   box-shadow: 0 1px 2px rgba(98,0,234,0.06);
   border: 1px solid #b39ddb;
+  display: flex;
+  flex-direction: row;
+  gap: 0.7rem;
+  justify-content: center;
+  width: 100%;
 }
 
 #edit-node-popup button:hover {
@@ -580,8 +586,8 @@ canvas {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  min-width: 420px;
-  max-width: 95vw;
+  min-width: 600px;
+  max-width: 98vw;
   background: #fff;
   border: 2px solid #6200ea;
   border-radius: 0.5rem;
@@ -590,9 +596,42 @@ canvas {
   z-index: 1000;
   display: none;
   flex-direction: row;
-  flex-wrap: wrap;  
-  gap: 2rem 0;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-start;  
+  justify-content: center;
+}
+
+#popup-window.active {
+  display: flex;
+}
+
+#popup-window .section {
+  flex: 1 1 40%;
+  min-width: 260px;
+  max-width: 48%;
+  margin-bottom: 0;
+}
+
+#popup-window .sections-row {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  #popup-window {
+    flex-direction: column;
+    min-width: 320px;
+    padding: 1rem;
+  }
+  #popup-window .section {
+    max-width: 100%;
+    min-width: 180px;
+    flex: 1 1 100%;
+  }
 }
 
 #popup-window.active {
