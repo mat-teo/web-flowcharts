@@ -422,6 +422,7 @@ function inserisciNodo(tipo) {
         // Apre il popup di modifica solo per nodi che non siano 'start' o 'end'
         if (flow.nodes[i].type != "start" && flow.nodes[i].type != "end") {
           document.getElementById("edit-node-popup").classList.add("active");
+          document.getElementById("edit-node-title").innerHTML = "Edit " + flow.nodes[i].type +" node"
           document.getElementById("edit-node-input").value = flow.nodes[i].info || "";
         }
         nodoSelected = i; // Memorizza l'indice del nodo

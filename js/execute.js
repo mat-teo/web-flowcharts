@@ -303,6 +303,10 @@ function checkCondition(condition, variables) {
             if (isVar) {
                 isVar = false;
                 let v = getVariable(variable, variables);
+                if(!existVariable(variable,variables)){
+                  throwError(variable + " has not been declared.")
+                  return {};
+                }
                 expression += v ? v.value.toString() : variable;
                 variable = "";
             }
@@ -312,6 +316,10 @@ function checkCondition(condition, variables) {
             if (isVar) {
                 isVar = false;
                 let v = getVariable(variable, variables);
+                if(!existVariable(variable,variables)){
+                  throwError(variable + " has not been declared.")
+                  return {};
+                }
                 expression += v ? v.value.toString() : variable;
                 variable = "";
             }
@@ -322,6 +330,10 @@ function checkCondition(condition, variables) {
         }
         if (j == condition.length - 1 && isVar) {
             let v = getVariable(variable, variables);
+            if(!existVariable(variable,variables)){
+                throwError(variable + " has not been declared.")
+                return {};
+            }
             expression += v ? v.value.toString() : variable;
             isVar = false;
             variable = "";
