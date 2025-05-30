@@ -1117,3 +1117,23 @@ function isEmpty(){
     resizeCanvas();
     chiudiEditPopup();
   }
+
+  function isLastNodeOfIf(index){
+    let lastIndex=[];
+    for(i=0;i<flow.nodes.length;i++){
+        if(lastIndex[lastIndex.length-1] == i || flow.nodes[lastIndex[lastIndex.length-1]] - 1 == i){
+          if(i==index){
+            return true;
+          }else{
+            lastIndex.pop();
+          }
+        }
+        if(flow.nodes[i].type == "if"){
+          if(flow.nodes[i].next.true != flow.nodes[i].next.false){
+            lastIndex.push(parseInt(flow.nodes[i].next.false)-1)
+          }else{
+            lastIndex.push(i);
+          }
+        }
+    }
+  }
