@@ -16,7 +16,9 @@ html, body {
     overflow: auto; /* Molto importante: aggiunge le barre di scorrimento quando il contenuto (il canvas) è più grande */
     border: 1px solid #ccc; /* Opzionale: per vedere i bordi del contenitore scrollabile */
 }
-
+canvas {
+  display: block;
+}
 #container {
   display: flex;
   flex-direction: column;

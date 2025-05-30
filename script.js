@@ -9,6 +9,37 @@
   let w = canvas.width;
   let h = canvas.height;
   
+  const NODE_BASE_HEIGHT_PX = 40; // Altezza base di un nodo in pixel
+  const NODE_VERTICAL_SPACING_BASE_REL = 0.06; // Spaziatura verticale relativa base tra nodi sequenziali (8% dell'altezza del canvas)
+  const IF_BRANCH_START_Y_OFFSET_REL = 0.05; // Spaziatura verticale relativa addizionale tra un nodo IF e l'inizio dei suoi rami
+
+ function resizeCanvasToFitNodes(nodi) {
+  const margin = 100;        // Spazio extra intorno ai nodi
+  const scrollPadding = 300; // Spazio in più *sempre* per scorrere
+
+  let maxX = 0, maxY = 0;
+
+  for (const node of nodi) {
+    const nodeX = node.relX * canvas.width;
+    const nodeY = node.relY * canvas.height;
+    if (nodeX > maxX) maxX = nodeX;
+    if (nodeY > maxY) maxY = nodeY;
+  }
+
+  // Calcola quanto spazio serve per contenere i nodi + margini + scroll extra
+  const requiredWidth = Math.max(container.offsetWidth, maxX + margin + scrollPadding);
+  const requiredHeight = Math.max(container.offsetHeight, maxY + margin + scrollPadding);
+
+  // Ridimensiona il canvas solo se necessario
+  if (canvas.width !== requiredWidth || canvas.height !== requiredHeight) {
+    canvas.width = requiredWidth;
+    canvas.height = requiredHeight;
+    w = canvas.width;
+    h = canvas.height;
+  }
+}
+
+
   let saved
   // Struttura dati principale per la logica del flowchart
   let flow = {
@@ -61,9 +92,21 @@
    * Disegna una linea tra due punti.
    * Se 'salva' è true, la linea viene aggiunta all'array 'frecce' per la rilevazione dei click.
    */
-  function drawLine(x1, y1, x2, y2, salva) {
+  function drawLine(x1, y1, x2, y2, salva, fromNodeIndex, toNodeIndex, arrowType) {
     if (salva) {
-      frecce.push({ inzioX: x1, inzioY: y1, fineX: x2, fineY: y2, id: frecce.length });
+      // Assicurati che fromNodeIndex e toNodeIndex siano numeri validi, altrimenti logga un errore o usa un fallback.
+      if (typeof fromNodeIndex !== 'number' || typeof toNodeIndex !== 'number') {
+        console.error("drawLine: fromNodeIndex o toNodeIndex non sono numeri validi.", { x1, y1, x2, y2, salva, fromNodeIndex, toNodeIndex, arrowType });
+        // Potresti decidere di non salvare la freccia o usare valori di fallback se appropriato,
+        // ma è meglio che il chiamante passi sempre dati validi.
+      }
+      frecce.push({
+        inzioX: x1, inzioY: y1, fineX: x2, fineY: y2,
+        id: frecce.length,
+        fromNodeIndex: fromNodeIndex,
+        toNodeIndex: toNodeIndex,
+        type: arrowType
+      });
     }
     ctx.beginPath();
     ctx.moveTo(x1, y1);
@@ -146,71 +189,157 @@ function drawLine(x1, y1, x2, y2, salva, fromNodeIndex, toNodeIndex, arrowType) 
  * Disegna l'intero flowchart (nodi e frecce) sul canvas.
  * @param {Array} forme - Array degli oggetti nodo visuali da disegnare.
  */
-function draw(forme) {
-  ctx.clearRect(0, 0, w, h); // Pulisce il canvas
-  frecce = []; // Resetta l'array delle frecce, che verranno ricalcolate
 
-  // Blocco 1: Disegna tutti i nodi (rettangoli e testo)
+function draw(forme) {
+  resizeCanvasToFitNodes(forme);
+  ctx.clearRect(0, 0, w, h); // Pulisce il canvas
+  frecce = []; // Resetta l'array delle frecce
+
+  // Blocco 1: Disegna tutti i nodi con forme personalizzate
   for (let i = 0; i < forme.length; i++) {
     const node = forme[i];
+    if (!node) {
+      console.warn(`draw: nodo visuale all'indice ${i} non definito.`);
+      continue;
+    }
+
+    // Determina colore in base al tipo
+    const tipo = flow.nodes[i]?.type;
+    let coloreNodo;
+    switch (tipo) {
+      case "start":       coloreNodo = "green";     break;
+      case "end":         coloreNodo = "red";       break;
+      case "read": case "input":   coloreNodo = "gray";       break;
+      case "write": case "output": case "print":     coloreNodo = "lightblue"; break;
+      case "assign": case "assignment": coloreNodo = "yellow";    break;
+      case "if":          coloreNodo = "orange";    break;
+      default:            coloreNodo = node.color;  break;
+    }
+
+    // Coordinate di base
     const x0 = node.relX * w - node.width / 2;
     const y0 = node.relY * h - node.height / 2;
     const cx = x0 + node.width / 2;
     const cy = y0 + node.height / 2;
 
-    ctx.fillStyle = node.color;
-    ctx.fillRect(x0, y0, node.width, node.height);
+    // **Disegna la forma corretta**
+    ctx.fillStyle   = coloreNodo;
     ctx.strokeStyle = "black";
-    ctx.strokeRect(x0, y0, node.width, node.height);
-    //scirtta dentro
+    switch (tipo) {
+      case "start":
+      case "end":
+        // Rettangolo con angoli arrotondati
+        drawRoundedRect(x0, y0, node.width, node.height, 10);
+        break;
+
+      case "read": case "input":
+      case "write": case "output": case "print":
+      case "assign": case "assignment":
+        // Parallelogramma con skew di 20px
+        drawParallelogram(x0, y0, node.width, node.height, 20);
+        break;
+
+      case "if":
+        // Rombo
+        drawDiamond(x0, y0, node.width, node.height);
+        break;
+
+      default:
+        // Rettangolo classico
+        ctx.beginPath();
+        ctx.rect(x0, y0, node.width, node.height);
+        ctx.closePath();
+        break;
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    // Testo all’interno
     if (node.text) {
       let toWrite = node.text;
-      if (flow.nodes[i] && (flow.nodes[i].type != "end" && flow.nodes[i].type != "start")) { // Aggiunto controllo flow.nodes[i]
+      if (flow.nodes[i] && !["start","end"].includes(flow.nodes[i].type)) {
         toWrite += ":\n" + (flow.nodes[i].info || "empty");
       }
-      ctx.font = `14px Arial`;
-      ctx.fillStyle = "black";
-      ctx.textAlign = "center";
+      ctx.font         = `bold 16px Arial`;
+      ctx.fillStyle    = "black";
+      ctx.textAlign    = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(toWrite, cx, cy);
     }
   }
 
-  // Blocco 2: Disegna le frecce di collegamento tra i nodi
-  // Questo avviene dopo aver disegnato tutti i nodi per avere le loro posizioni corrette.
+  // Blocco 2: Disegna le frecce (come prima, senza modifiche)
   for (let i = 0; i < forme.length; i++) {
-    const node = forme[i]; // Nodo visuale di partenza
-    const logic = flow.nodes[i]; // Nodo logico corrispondente
+    const node  = forme[i];
+    const logic = flow.nodes[i];
+    if (!logic || !node) continue;
 
-    if (!logic) continue; // Salta se il nodo logico non esiste (potrebbe accadere durante manipolazioni intense)
-
-    const xMid = node.relX * w;
-    const yMid = node.relY * h;
+    const xMid       = node.relX * w;
+    const yMid       = node.relY * h;
     const nodeHeight = node.height;
 
-    // Gestisce le frecce per i nodi "if" (con rami true/false)
-    if (logic.type === "if" && typeof logic.next === "object") {
-      const trueIndex = parseInt(logic.next.true);
-      const falseIndex = parseInt(logic.next.false);
-      if (!isNaN(trueIndex) && forme[trueIndex]) {
-        // Passa l'indice del nodo 'if' (i) e l'indice del nodo target del ramo 'true'
+    if (logic.type === "if" && typeof logic.next === "object" && logic.next !== null) {
+      const trueIndex  = parseInt(logic.next.true,  10);
+      const falseIndex = parseInt(logic.next.false, 10);
+      if (!isNaN(trueIndex)  && forme[trueIndex]) {
         drawArrowFromRight(node, forme[trueIndex], "T", i, trueIndex);
       }
       if (!isNaN(falseIndex) && forme[falseIndex]) {
-        // Passa l'indice del nodo 'if' (i) e l'indice del nodo target del ramo 'false'
         drawArrowFromLeft(node, forme[falseIndex], "F", i, falseIndex);
       }
-    // Gestisce le frecce per gli altri tipi di nodi (con una singola uscita 'next')
-    } else if (typeof logic.next === "string" && logic.next !== null) {
-      const nextIndex = parseInt(logic.next);
+    } 
+    else if (typeof logic.next === "string" && logic.next !== null) {
+      const nextIndex = parseInt(logic.next, 10);
       if (!isNaN(nextIndex) && forme[nextIndex]) {
         const target = forme[nextIndex];
-        // Passa l'indice del nodo corrente (i) e l'indice del nodo successivo
-        drawLine(xMid, yMid + nodeHeight / 2, target.relX * w, target.relY * h - target.height / 2, true, i, nextIndex, 'normal');
+        drawLine(
+          xMid,
+          yMid + nodeHeight / 2,
+          target.relX * w,
+          target.relY * h - target.height / 2,
+          true,
+          i,
+          nextIndex,
+          'normal'
+        );
       }
     }
   }
 }
+// Rettangolo con angoli arrotondati
+function drawRoundedRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// Parallelogramma (spostamento orizzontale di 'skew' px sui lati)
+function drawParallelogram(x, y, width, height, skew) {
+  ctx.beginPath();
+  ctx.rect(x, y, width, height);
+  ctx.closePath();
+}
+
+// Rombo (diamante) centrato su x0,y0 con ampiezza w,h
+function drawDiamond(x, y, w, h) {
+  const cx = x + w/2;
+  const cy = y + h/2;
+  ctx.beginPath();
+  ctx.moveTo(cx, y);
+  ctx.lineTo(x + w, cy);
+  ctx.lineTo(cx, y + h);
+  ctx.lineTo(x, cy);
+  ctx.closePath();
+}
+
 
 /**
  * Disegna una freccia "a gomito" dal lato destro del nodo 'from' al nodo 'to',
@@ -224,28 +353,35 @@ function draw(forme) {
 function drawArrowFromRight(from, to, label, fromNodeIndex, toNodeIndex) {
     const startX = from.relX * w + from.width / 2;
     const startY = from.relY * h;
-    const midX = startX + 40; // Punto X del gomito
-    const targetAttachX = to.relX * w; // Coordinata X centrale del nodo target
+    const midX = startX + 40; 
+    const targetAttachX = to.relX * w; 
     const targetAttachY = to.relY * h - to.height / 2; // Bordo superiore del nodo target
-    const horizontalLineY = targetAttachY - 10; // Y per il segmento orizzontale vicino al cerchio/target (10 è raggio cerchio)
+    // Y per il segmento orizzontale. Assicurati che sia sopra targetAttachY se c'è un cerchio.
+    // Se targetAttachY è la Y del bordo superiore del nodo, e il cerchio è sopra,
+    // horizontalLineY deve essere ancora più sopra o coincidere con il centro del cerchio.
+    // Adattiamo per essere sicuri che horizontalLineY sia sopra il target del nodo.
+    const circleRadius = 10;
+    const verticalGapBeforeNode = 25; // Spazio desiderato prima del nodo target (per cerchio e linea)
+    const horizontalLineY = targetAttachY - verticalGapBeforeNode - circleRadius;
 
-    drawLine(startX, startY, midX, startY, false); // Segmento orizzontale dal nodo sorgente
-    // Il segmento verticale è quello principale cliccabile per le frecce 'if'
+
+    drawLine(startX, startY, midX, startY, false); 
+    // Segmento verticale principale cliccabile per il ramo 'if_true'
     drawLine(midX, startY, midX, horizontalLineY, true, fromNodeIndex, toNodeIndex, 'if_true');
-    drawLine(midX, horizontalLineY, targetAttachX, horizontalLineY, false); // Segmento orizzontale verso il nodo target
+    drawLine(midX, horizontalLineY, targetAttachX, horizontalLineY, false); 
 
-    // Disegna un cerchio nel punto di connessione e l'etichetta
     ctx.beginPath();
-    ctx.arc(targetAttachX, horizontalLineY, 10, 0, 2 * Math.PI, false); // Cerchio di connessione
+    ctx.arc(targetAttachX, horizontalLineY, circleRadius, 0, 2 * Math.PI, false); 
     ctx.stroke();
-    ctx.fillStyle = "green"; // Colore per il testo del ramo True
+    ctx.fillStyle = "black"; 
     ctx.font = "12px Arial";
     ctx.textAlign = "center";
-    // Etichetta posizionata a metà del segmento verticale
-    ctx.fillText(label, midX, startY + (horizontalLineY - startY) / 2);
+    ctx.fillText(label, midX + 20 , startY + (horizontalLineY - startY) / 2);
+    // ctx.fill(); // fill() non è necessario per il testo se usi fillStyle e fillText
 
-    // Linea finale dal cerchio al bordo superiore del nodo target
-    drawLine(targetAttachX, horizontalLineY, targetAttachX, targetAttachY, false);
+    // Linea finale dal cerchio (o dal punto di attacco orizzontale) al bordo superiore del nodo target
+    // Questo segmento, se cliccato, rappresenta l'inserimento "dopo il join" per questo ramo.
+    drawLine(targetAttachX, horizontalLineY, targetAttachX, targetAttachY, true, fromNodeIndex, toNodeIndex, 'if_true_join_segment');
 }
 
 /**
@@ -260,28 +396,28 @@ function drawArrowFromRight(from, to, label, fromNodeIndex, toNodeIndex) {
 function drawArrowFromLeft(from, to, label, fromNodeIndex, toNodeIndex) {
     const startX = from.relX * w - from.width / 2;
     const startY = from.relY * h;
-    const midX = startX - 40; // Punto X del gomito
-    const targetAttachX = to.relX * w; // Coordinata X centrale del nodo target
+    const midX = startX - 40; 
+    const targetAttachX = to.relX * w; 
     const targetAttachY = to.relY * h - to.height / 2; // Bordo superiore del nodo target
-    const horizontalLineY = targetAttachY - 10; // Y per il segmento orizzontale vicino al cerchio/target
+    const circleRadius = 10;
+    const verticalGapBeforeNode = 25;
+    const horizontalLineY = targetAttachY - verticalGapBeforeNode - circleRadius;
 
-    drawLine(startX, startY, midX, startY, false); // Segmento orizzontale dal nodo sorgente
-    // Il segmento verticale è quello principale cliccabile
+    drawLine(startX, startY, midX, startY, false); 
     drawLine(midX, startY, midX, horizontalLineY, true, fromNodeIndex, toNodeIndex, 'if_false');
-    drawLine(midX, horizontalLineY, targetAttachX, horizontalLineY, false); // Segmento orizzontale verso il nodo target
+    drawLine(midX, horizontalLineY, targetAttachX, horizontalLineY, false); 
 
-    // Disegna un cerchio nel punto di connessione e l'etichetta
     ctx.beginPath();
-    ctx.arc(targetAttachX, horizontalLineY, 10, 0, 2 * Math.PI, false); // Cerchio di connessione
+    ctx.arc(targetAttachX, horizontalLineY, circleRadius, 0, 2 * Math.PI, false); 
     ctx.stroke();
-    ctx.fillStyle = "red"; // Colore per il testo del ramo False
+    ctx.fillStyle = "red"; 
     ctx.font = "12px Arial";
     ctx.textAlign = "center";
-    // Etichetta posizionata a metà del segmento verticale
-    ctx.fillText(label, midX, startY + (horizontalLineY - startY) / 2);
+    ctx.fillText(label, midX - 20 , startY + (horizontalLineY - startY) / 2);
     
     // Linea finale dal cerchio al bordo superiore del nodo target
-    drawLine(targetAttachX, horizontalLineY, targetAttachX, targetAttachY, false);
+    // Anche questo segmento, se cliccato, rappresenta l'inserimento "dopo il join" per questo ramo.
+    drawLine(targetAttachX, horizontalLineY, targetAttachX, targetAttachY, true, fromNodeIndex, toNodeIndex, 'if_false_join_segment');
 }
 
 
@@ -289,116 +425,222 @@ function drawArrowFromLeft(from, to, label, fromNodeIndex, toNodeIndex) {
  * Inserisce un nuovo nodo logico e visuale nel flowchart quando l'utente clicca su una freccia.
  * @param {string} tipo - Il tipo di nodo da inserire (es. "input", "print", "if").
  */
+// In script.js
+
+/**
+ * Inserisce un nuovo nodo logico e visuale nel flowchart quando l'utente clicca su una freccia.
+ * @param {string} tipo - Il tipo di nodo da inserire (es. "input", "print", "if").
+ */
+// In script.js
+
+/**
+ * Inserisce un nuovo nodo logico e visuale nel flowchart quando l'utente clicca su una freccia.
+ * @param {string} tipo - Il tipo di nodo da inserire (es. "input", "print", "if").
+ */
+// In script.js
+// In script.js
+// Sostituisci completamente la tua funzione inserisciNodo con questa:
 function inserisciNodo(tipo) {
-    saved = false; // Segna che ci sono modifiche non salvate
+    saved = false;
     if (frecceSelected === -1 || !frecce[frecceSelected]) {
-        console.error("Nessuna freccia selezionata o freccia non valida.");
+        console.error("inserisciNodo ERRORE: Nessuna freccia selezionata o freccia non valida.");
         chiudiPopup();
         return;
     }
 
     const clickedArrow = frecce[frecceSelected];
-    const parentNodeIndex = clickedArrow.fromNodeIndex;
-    const originalTargetNodeIndex = clickedArrow.toNodeIndex;
+    if (typeof clickedArrow.fromNodeIndex !== 'number' || typeof clickedArrow.toNodeIndex !== 'number') {
+        console.error("inserisciNodo ERRORE: Dati freccia corrotti.", clickedArrow);
+        chiudiPopup();
+        frecceSelected = -1;
+        return;
+    }
 
-    // Il nuovo nodo verrà inserito logicamente nell'array flow.nodes.
-    // Una strategia comune è inserirlo all'indice del target originale.
-    // Il target originale e tutti i nodi successivi verranno scalati di uno.
-    const newActualNodeIndex = originalTargetNodeIndex;
+    const parentNodeIndex = clickedArrow.fromNodeIndex;
+    const originalTargetNodeIndex = clickedArrow.toNodeIndex; // Indice a cui la freccia puntava ORIGINARIAMENTE
+    const newActualNodeIndex = originalTargetNodeIndex; // Il nuovo nodo verrà inserito a questo indice, shiftando l'originale
+
+    console.log(`inserisciNodo INFO: Inizio. Tipo: ${tipo}, Freccia ID: ${clickedArrow.id}, Freccia Tipo: ${clickedArrow.type}`);
+    console.log(`  parentNodeIndex: ${parentNodeIndex}, originalTargetNodeIndex: ${originalTargetNodeIndex}, newActualNodeIndex: ${newActualNodeIndex}`);
+
+    if (parentNodeIndex === originalTargetNodeIndex &&
+        (clickedArrow.type.startsWith('if_true') || clickedArrow.type.startsWith('if_false'))) {
+        console.error(`inserisciNodo ERRORE: Tentativo di inserire nodo in un ramo IF che punta a se stesso. Annullato.`);
+        chiudiPopup();
+        frecceSelected = -1;
+        return;
+    }
 
     let newNodeLogic;
+    const nextNodeForNewLogic = (newActualNodeIndex + 1).toString();
     if (tipo === "if") {
         newNodeLogic = {
-            "type": "if",
-            "info": "", // L'utente la modificherà in seguito
-            "next": {
-                // Entrambi i rami del nuovo "if" puntano inizialmente al target originale della freccia cliccata.
-                // Dopo l'inserimento, questo sarà (newActualNodeIndex + 1).
-                "true": (newActualNodeIndex + 1).toString(),
-                "false": (newActualNodeIndex + 1).toString()
-            }
+            "type": "if", "info": "",
+            "next": { "true": nextNodeForNewLogic, "false": nextNodeForNewLogic }
         };
     } else {
-        newNodeLogic = {
-            "type": tipo,
-            "info": "", // L'utente la modificherà
-            // Il nuovo nodo punta al target originale della freccia cliccata.
-            // Dopo l'inserimento, questo sarà (newActualNodeIndex + 1).
-            "next": (newActualNodeIndex + 1).toString()
-        };
+        newNodeLogic = { "type": tipo, "info": "", "next": nextNodeForNewLogic };
     }
 
-    // Inserisci il nuovo nodo logico in flow.nodes
     flow.nodes.splice(newActualNodeIndex, 0, newNodeLogic);
+    console.log(`inserisciNodo INFO: newNodeLogic inserito in flow.nodes all'indice ${newActualNodeIndex}. Lunghezza flow.nodes: ${flow.nodes.length}`);
 
-    // Aggiorna i puntatori 'next' (e 'true'/'false') di TUTTI i nodi a causa dello splice.
-    // Qualsiasi puntatore che era >= newActualNodeIndex deve essere incrementato.
+    // CICLO FOR PER AGGIORNARE GLI INDICI LOGICI (con controlli robusti)
     for (let i = 0; i < flow.nodes.length; i++) {
         let n = flow.nodes[i];
+        if (n === newNodeLogic) { continue; } // Salta il nuovo nodo
 
-        // Non modificare il nodo appena inserito (newNodeLogic) in questo ciclo, 
-        // i suoi puntatori 'next' sono già stati impostati correttamente
-        // in relazione alla sua nuova posizione e ai nodi che lo seguono.
-        if (i === newActualNodeIndex && n === newNodeLogic) {
-            continue; 
-        }
-        
-        if (n.type === "if" && typeof n.next === "object") {
-            let oldTrue = parseInt(n.next.true);
-            let oldFalse = parseInt(n.next.false);
+        if (n.type === "if" && typeof n.next === "object" && n.next !== null) {
+            if (n.next.true !== null && typeof n.next.true === 'string') {
+                let oldTrue = parseInt(n.next.true);
+                if (!isNaN(oldTrue) && oldTrue >= newActualNodeIndex) { n.next.true = (oldTrue + 1).toString(); }
+            } else if (n.next.true !== null) { console.warn(`inserisciNodo AVVISO: Nodo IF [${i}] next.true non è una stringa valida:`, n.next.true); }
 
-            // Se il puntatore true puntava a un indice che ora è scalato
-            if (!isNaN(oldTrue) && oldTrue >= newActualNodeIndex) {
-                n.next.true = (oldTrue + 1).toString();
-            }
-            // Se il puntatore false puntava a un indice che ora è scalato
-            if (!isNaN(oldFalse) && oldFalse >= newActualNodeIndex) {
-                n.next.false = (oldFalse + 1).toString();
-            }
-        } else if (typeof n.next === "string" && n.next !== null) {
+            if (n.next.false !== null && typeof n.next.false === 'string') {
+                let oldFalse = parseInt(n.next.false);
+                if (!isNaN(oldFalse) && oldFalse >= newActualNodeIndex) { n.next.false = (oldFalse + 1).toString(); }
+            } else if (n.next.false !== null) { console.warn(`inserisciNodo AVVISO: Nodo IF [${i}] next.false non è una stringa valida:`, n.next.false); }
+        } else if (n.next !== null && typeof n.next === 'string') {
             let oldNext = parseInt(n.next);
-            // Se il puntatore next puntava a un indice che ora è scalato
-            if (!isNaN(oldNext) && oldNext >= newActualNodeIndex) {
-                n.next = (oldNext + 1).toString();
-            }
-        }
+            if (!isNaN(oldNext) && oldNext >= newActualNodeIndex) { n.next = (oldNext + 1).toString(); }
+        } else if (n.next !== null && n.next !== "") { console.warn(`inserisciNodo AVVISO: Nodo [${i}] next non è una stringa valida o null:`, n.next); }
     }
-    
-    // Ora, aggiorna il nodo genitore (da cui partiva la freccia cliccata) per puntare al nuovo nodo.
-    // L'indice parentNodeIndex è ancora valido perché l'inserimento è avvenuto a newActualNodeIndex (originalTargetNodeIndex).
-    // Se parentNodeIndex < newActualNodeIndex, il suo indice non è cambiato.
-    // Se parentNodeIndex == newActualNodeIndex, sarebbe un caso strano (nodo che punta a se stesso e si inserisce "prima"?).
-    // Normalmente, parentNodeIndex sarà < newActualNodeIndex.
-    const parentNodeToUpdate = flow.nodes[parentNodeIndex]; 
-    if (parentNodeToUpdate) { // Controllo di sicurezza
+    console.log(`inserisciNodo INFO: Ciclo FOR per aggiornamento indici completato.`);
+
+   // In script.js
+// Dentro la funzione inserisciNodo
+
+// ... (codice fino alla determinazione di actualParentNodeLogic) ...
+
+const actualParentNodeLogic = flow.nodes[parentNodeIndex];
+let isJoinInsertion = false; // Determina se è un inserimento post-join
+let isBranchInsertion = false; // Determina se è un inserimento in un ramo IF standard
+
+if (actualParentNodeLogic && actualParentNodeLogic.type === 'if' && typeof actualParentNodeLogic.next === 'object') {
+    const originalTargetNumeric = parseInt(originalTargetNodeIndex);
+    const expectedIndexOfOriginalTargetAfterShift = (originalTargetNumeric + (newActualNodeIndex <= originalTargetNumeric ? 1 : 0)).toString();
+
+    // È un inserimento post-join SOLO se si clicca su un segmento specificamente marcato come "join_segment"
+    // E l'altro ramo dell'IF puntava anch'esso al target originale (ora shiftato)
+    if ((clickedArrow.type === 'if_true_join_segment') &&
+        actualParentNodeLogic.next.false === expectedIndexOfOriginalTargetAfterShift) {
+        isJoinInsertion = true;
+        console.log("inserisciNodo DEBUG JOIN: Rilevato JOIN tramite if_true_join_segment e corrispondenza next.false");
+    } else if ((clickedArrow.type === 'if_false_join_segment') &&
+               actualParentNodeLogic.next.true === expectedIndexOfOriginalTargetAfterShift) {
+        isJoinInsertion = true;
+        console.log("inserisciNodo DEBUG JOIN: Rilevato JOIN tramite if_false_join_segment e corrispondenza next.true");
+    }
+}
+
+// Determina se è un inserimento in un ramo standard (non join)
+if (!isJoinInsertion && actualParentNodeLogic && actualParentNodeLogic.type === 'if' &&
+    (clickedArrow.type === 'if_true' || clickedArrow.type === 'if_false')) {
+    isBranchInsertion = true;
+    console.log("inserisciNodo DEBUG JOIN: Rilevato BRANCH insertion (non join). ClickedArrow.type:", clickedArrow.type);
+}
+
+
+// AGGIORNAMENTO PUNTATORI LOGICI DEL NODO GENITORE
+if (actualParentNodeLogic) {
+    const newTargetForParent = newActualNodeIndex.toString();
+    if (isJoinInsertion) {
+        actualParentNodeLogic.next.true = newTargetForParent;
+        actualParentNodeLogic.next.false = newTargetForParent;
+        console.log(`inserisciNodo INFO: JOIN. ParentIF [${parentNodeIndex}] next.true E next.false -> ${newTargetForParent}`);
+    } else { // Include isBranchInsertion e normal
         if (clickedArrow.type === 'normal') {
-            parentNodeToUpdate.next = newActualNodeIndex.toString();
-        } else if (clickedArrow.type === 'if_true') {
-            parentNodeToUpdate.next.true = newActualNodeIndex.toString();
-        } else if (clickedArrow.type === 'if_false') {
-            parentNodeToUpdate.next.false = newActualNodeIndex.toString();
+            actualParentNodeLogic.next = newTargetForParent;
+            console.log(`inserisciNodo INFO: NORMAL. Parent [${parentNodeIndex}] next -> ${newTargetForParent}`);
+        } else if (clickedArrow.type === 'if_true' || clickedArrow.type === 'if_true_join_segment') { // Anche se if_true_join_segment non porta a isJoinInsertion, aggiorna solo il ramo true
+            actualParentNodeLogic.next.true = newTargetForParent;
+            console.log(`inserisciNodo INFO: IF_TRUE branch/segment. ParentIF [${parentNodeIndex}] next.true -> ${newTargetForParent}`);
+        } else if (clickedArrow.type === 'if_false' || clickedArrow.type === 'if_false_join_segment') { // Simile per false
+            actualParentNodeLogic.next.false = newTargetForParent;
+            console.log(`inserisciNodo INFO: IF_FALSE branch/segment. ParentIF [${parentNodeIndex}] next.false -> ${newTargetForParent}`);
         }
     }
+} else { /* ... errore parent non trovato ... */ }
+
+// CALCOLO DI newRelX PER IL NODO VISUALE
+const parentVisualNode = nodi[parentNodeIndex];
+let newRelX;
+const elbowOffsetPixels = 40;
+
+console.log(`inserisciNodo DEBUG X: Inizio calcolo newRelX. isJoinInsertion=${isJoinInsertion}, isBranchInsertion=${isBranchInsertion}, clickedArrow.type=${clickedArrow.type}`);
+if(parentVisualNode) console.log(`  parentVisualNode.relX: ${parentVisualNode.relX.toFixed(3)}`);
 
 
-    // Inserisci il nodo visuale
-    const parentVisualNode = nodi[parentNodeIndex];
+if (isJoinInsertion && parentVisualNode) {
+    newRelX = parentVisualNode.relX; // Allinea con l'IF genitore per il join
+    console.log(`  newRelX calcolato (JOIN): ${newRelX.toFixed(3)}`);
+} else if (isBranchInsertion && parentVisualNode) { // Se è un inserimento in un ramo (non join)
+    if (clickedArrow.type === 'if_true') { // Solo per i tipi di freccia del gomito del ramo
+        const parentRightEdgeX_abs = parentVisualNode.relX * w + parentVisualNode.width / 2;
+        const midX_abs = parentRightEdgeX_abs + elbowOffsetPixels;
+        newRelX = midX_abs / w;
+        console.log(`  newRelX calcolato (RAMO TRUE - GOMITO): ${newRelX.toFixed(3)}`);
+    } else if (clickedArrow.type === 'if_false') { // Solo per i tipi di freccia del gomito del ramo
+        const parentLeftEdgeX_abs = parentVisualNode.relX * w - parentVisualNode.width / 2;
+        const midX_abs = parentLeftEdgeX_abs - elbowOffsetPixels;
+        newRelX = midX_abs / w;
+        console.log(`  newRelX calcolato (RAMO FALSE - GOMITO): ${newRelX.toFixed(3)}`);
+    } else { // Se è un _join_segment ma non un isJoinInsertion, o un tipo imprevisto per un ramo
+        newRelX = parentVisualNode.relX; // Fallback per sicurezza, o da rivedere
+        console.log(`  newRelX calcolato (RAMO - FALLBACK/SEGMENTO JOIN NON TRATTATO COME JOIN): ${newRelX.toFixed(3)}`);
+    }
+} else if (parentVisualNode && clickedArrow.type === 'normal') { // Inserimento su una freccia normale
+    newRelX = parentVisualNode.relX;
+    console.log(`  newRelX calcolato (NORMAL): ${newRelX.toFixed(3)}`);
+} else if (parentVisualNode) { // Fallback per altri tipi di frecce se parentVisualNode esiste
+    newRelX = parentVisualNode.relX;
+    console.warn(`  newRelX WARN: Tipo di freccia non gestito specificamente per X (${clickedArrow.type}), allineato con parent. X: ${newRelX.toFixed(3)}`);
+}
+else { // parentVisualNode non trovato
+    newRelX = 0.35;
+    if (nodi.length > 0 && nodi[0]) { newRelX = nodi[0].relX; }
+    console.warn(`  newRelX WARN: Parent visual node [${parentNodeIndex}] non trovato. Usando fallback X: ${newRelX.toFixed(3)}`);
+}
+
+// ... (resto della funzione: clamp di newRelX, splice del nodo visuale, logging, calcoloY, draw) ...
+
+    const nodeVisualWidth = 100;
+    let minPossibleRelX = (nodeVisualWidth / 2) / w + 0.01;
+    let maxPossibleRelX = 1 - ((nodeVisualWidth / 2) / w) - 0.01;
+    if (newRelX < minPossibleRelX) newRelX = minPossibleRelX;
+    if (newRelX > maxPossibleRelX) newRelX = maxPossibleRelX;
+    console.log(`  newRelX finale (dopo clamp): ${newRelX.toFixed(3)}`);
+
     nodi.splice(newActualNodeIndex, 0, {
-        relX: parentVisualNode ? parentVisualNode.relX : 0.35,
-        relY: 0, // calcoloY lo correggerà
-        width: 100,
-        height: 40,
-        color: "white",
-        text: tipo.charAt(0).toUpperCase() + tipo.slice(1)
+        relX: newRelX, relY: 0, width: nodeVisualWidth, height: 40,
+        color: "white", text: tipo.charAt(0).toUpperCase() + tipo.slice(1)
     });
+    console.log(`inserisciNodo INFO: Nodo visuale inserito in 'nodi' all'indice ${newActualNodeIndex} con relX=${newRelX.toFixed(3)}. Lunghezza nodi: ${nodi.length}`);
+
+
+    console.log("--- STATO FLOW.NODES PRIMA DI CALCOLOY (in inserisciNodo) ---");
+    for (let idx = 0; idx < flow.nodes.length; idx++) {
+        const node = flow.nodes[idx];
+        let nextInfo = "";
+        if (node && node.type === "if" && node.next) {
+            nextInfo = `TRUE -> ${node.next.true}, FALSE -> ${node.next.false}`;
+        } else if (node && node.next !== undefined) {
+            nextInfo = `NEXT -> ${node.next}`;
+        } else if (node) {
+            nextInfo = `NEXT -> (non definito o invalido)`;
+        } else { console.warn(`Nodo logico all'indice ${idx} non definito durante il logging.`); continue; }
+        let nodeType = node && node.type ? node.type : "tipo_sconosciuto";
+        let nodeInfoVal = node && node.info !== undefined ? node.info : "info_sconosciuta";
+        console.log(`[${idx}] type: ${nodeType}, info: "${nodeInfoVal}", ${nextInfo}`);
+    }
+    console.log("-------------------------------------------------------");
 
     calcoloY(nodi);
     draw(nodi);
     chiudiPopup();
-    frecceSelected = -1; // Resetta la selezione
+    frecceSelected = -1;
+} // Fine di inserisciNodo
 
-    // console.log("Nuovo flow:", JSON.parse(JSON.stringify(flow.nodes)));
-}
   /**
    * Gestisce il click su un nodo.
    * Se un nodo (non 'start' o 'end') è cliccato, apre il popup per modificarne le informazioni.
@@ -602,20 +844,157 @@ function inserisciNodo(tipo) {
    * Ricalcola e assegna le posizioni Y relative (relY) a tutti i nodi visuali
    * per distribuirli verticalmente in modo uniforme sul canvas.
    */
-  function calcoloY(nodiArr) {
-    let currentRelY = 0.05; // Posizione Y relativa di partenza
-    const ySpacing = 0.05;  // Spaziatura verticale relativa tra i nodi
-    const ifAdditionalSpacing = 0.06
-    for (let i = 0; i < nodiArr.length; i++) {
-      nodiArr[i].relY = currentRelY; // Assegna la posizione Y calcolata al nodo corrente
-      let spacingForNextNode = (nodiArr[i].height / h) + ySpacing;
-      const currentNodeLogic = flow.nodes[i];
-      if (currentNodeLogic && currentNodeLogic.type === "if") {
-        spacingForNextNode += ifAdditionalSpacing;
-      }
-      currentRelY += spacingForNextNode; // Aggiorna currentRelY per il prossimo nodo
+  
+  // In script.js, sostituisci la vecchia funzione calcoloY
+
+// In script.js, sostituisci la tua intera funzione calcoloY
+
+function calcoloY(nodiVisualArray) {
+    if (!flow.nodes.length || !nodiVisualArray.length || !h) {
+        console.warn("calcoloY: Dati mancanti o canvas non inizializzato correttamente.");
+        return;
     }
-  }
+
+    for (let node of nodiVisualArray) {
+        node.relY = 0; 
+    }
+    
+    let maxYAtColumn = {}; 
+
+    /**
+     * @param {number} currentNodeIndex
+     * @param {number} predecessorBottomY_candidate
+     * @param {Set<number>} visitedInPath - Nodi visitati in questo specifico percorso ricorsivo per rilevare cicli.
+     * @returns {number}
+     */
+    // In script.js
+// Dentro la funzione calcoloY, nella sotto-funzione calculateNodeYRecursive
+
+function calculateNodeYRecursive(currentNodeIndex, predecessorBottomY_candidate, visitedInPath) {
+    const visualNode = nodiVisualArray[currentNodeIndex];
+    const logicalNode = flow.nodes[currentNodeIndex];
+
+    // Log Iniziale per la chiamata corrente
+    // console.log(`calcoloY [${currentNodeIndex} - ${logicalNode ? logicalNode.type : 'N/A'}]: Entrata. predecessorBottomY_candidate=${predecessorBottomY_candidate.toFixed(3)}`);
+
+    if (!visualNode || !logicalNode) {
+        // console.log(`calcoloY [${currentNodeIndex}]: Nodo visuale o logico non trovato. Ritorno: ${predecessorBottomY_candidate.toFixed(3)}`);
+        return predecessorBottomY_candidate;
+    }
+
+    if (visitedInPath.has(currentNodeIndex)) {
+        console.warn(`calculateNodeYRecursive: Ciclo rilevato al nodo ${currentNodeIndex}. Interruzione del percorso.`);
+        return visualNode.relY !== 0 ? visualNode.relY + ((visualNode.height || NODE_BASE_HEIGHT_PX) / h) + NODE_VERTICAL_SPACING_BASE_REL : predecessorBottomY_candidate;
+    }
+    visitedInPath.add(currentNodeIndex);
+
+    const nodeHeightRel = (visualNode.height || NODE_BASE_HEIGHT_PX) / h;
+    const columnKey = visualNode.relX.toFixed(2);
+
+    let proposedTopY = predecessorBottomY_candidate;
+    // console.log(`calcoloY [${currentNodeIndex}]: proposedTopY iniziale = ${proposedTopY.toFixed(3)}`);
+
+    if (maxYAtColumn[columnKey] && maxYAtColumn[columnKey] > proposedTopY) {
+        // console.log(`calcoloY [${currentNodeIndex}]: Colonna ${columnKey} ha maxY=${maxYAtColumn[columnKey].toFixed(3)}, che è > proposedTopY. proposedTopY aggiornato.`);
+        proposedTopY = maxYAtColumn[columnKey];
+    }
+
+    if (visualNode.relY !== 0 && visualNode.relY > proposedTopY) {
+        // console.log(`calcoloY [${currentNodeIndex}]: visualNode.relY (${visualNode.relY.toFixed(3)}) è > proposedTopY. proposedTopY aggiornato.`);
+        proposedTopY = visualNode.relY;
+    }
+    
+    visualNode.relY = proposedTopY;
+    // console.log(`calcoloY [${currentNodeIndex}]: ASSEGNATO visualNode.relY = ${visualNode.relY.toFixed(3)}`);
+
+    const currentNodeBottomY = visualNode.relY + nodeHeightRel + NODE_VERTICAL_SPACING_BASE_REL;
+    // console.log(`calcoloY [${currentNodeIndex}]: currentNodeBottomY (con spacing) = ${currentNodeBottomY.toFixed(3)}`);
+    
+    // Aggiorna maxYAtColumn[columnKey] *solo se* currentNodeBottomY è effettivamente maggiore.
+    // Questo previene che un percorso più corto sovrascriva un maxY stabilito da un percorso più lungo che passa per la stessa colonna.
+    if (!maxYAtColumn[columnKey] || currentNodeBottomY > maxYAtColumn[columnKey]) {
+        maxYAtColumn[columnKey] = currentNodeBottomY;
+        // console.log(`calcoloY [${currentNodeIndex}]: Aggiornato maxYAtColumn[${columnKey}] = ${maxYAtColumn[columnKey].toFixed(3)}`);
+    }
+    
+    let maxPathYReached = currentNodeBottomY;
+
+    if (logicalNode.type === "if" && typeof logicalNode.next === "object") {
+        const trueNextIndex = parseInt(logicalNode.next.true);
+        const falseNextIndex = parseInt(logicalNode.next.false);
+        
+        let branchInitialTopY = visualNode.relY + nodeHeightRel + IF_BRANCH_START_Y_OFFSET_REL;
+        // console.log(`calcoloY [${currentNodeIndex} - IF]: branchInitialTopY = ${branchInitialTopY.toFixed(3)} (relY=${visualNode.relY.toFixed(3)}, heightRel=${nodeHeightRel.toFixed(3)}, offset=${IF_BRANCH_START_Y_OFFSET_REL.toFixed(3)})`);
+
+        let trueBranchEndY = currentNodeBottomY; 
+        let falseBranchEndY = currentNodeBottomY;
+
+        if (!isNaN(trueNextIndex) && flow.nodes[trueNextIndex] && nodiVisualArray[trueNextIndex]) {
+            trueBranchEndY = calculateNodeYRecursive(trueNextIndex, branchInitialTopY, new Set(visitedInPath));
+            // console.log(`calcoloY [${currentNodeIndex} - IF]: Ramo TRUE (->${trueNextIndex}) ritorna trueBranchEndY = ${trueBranchEndY.toFixed(3)}`);
+        }
+        if (!isNaN(falseNextIndex) && flow.nodes[falseNextIndex] && nodiVisualArray[falseNextIndex]) {
+            falseBranchEndY = calculateNodeYRecursive(falseNextIndex, branchInitialTopY, new Set(visitedInPath));
+            // console.log(`calcoloY [${currentNodeIndex} - IF]: Ramo FALSE (->${falseNextIndex}) ritorna falseBranchEndY = ${falseBranchEndY.toFixed(3)}`);
+        }
+        maxPathYReached = Math.max(maxPathYReached, trueBranchEndY, falseBranchEndY); // Assicurati di considerare anche la Y del nodo IF stesso se i rami sono più corti.
+        // Correggo: maxPathYReached dovrebbe essere il massimo tra le Y finali dei rami.
+        // Se un ramo non esiste, la sua EndY è currentNodeBottomY, che è un fallback sicuro.
+        maxPathYReached = Math.max(trueBranchEndY, falseBranchEndY);
+
+
+    } else if (typeof logicalNode.next === "string" && logicalNode.next !== null) {
+        const nextNodeIndex = parseInt(logicalNode.next);
+        if (!isNaN(nextNodeIndex) && flow.nodes[nextNodeIndex] && nodiVisualArray[nextNodeIndex]) {
+             maxPathYReached = calculateNodeYRecursive(nextNodeIndex, currentNodeBottomY, new Set(visitedInPath));
+             // console.log(`calcoloY [${currentNodeIndex}]: Ramo NEXT (->${nextNodeIndex}) ritorna maxPathYReached = ${maxPathYReached.toFixed(3)}`);
+        }
+    }
+    
+    // console.log(`calcoloY [${currentNodeIndex}]: Uscita. Ritorno maxPathYReached = ${maxPathYReached.toFixed(3)}`);
+    return maxPathYReached;
+}
+    let startNodeIndex = flow.nodes.findIndex(node => node.type === 'start');
+    if (startNodeIndex === -1 && flow.nodes.length > 0) {
+        startNodeIndex = 0;
+    }
+
+    if (startNodeIndex !== -1 && nodiVisualArray[startNodeIndex]) {
+        nodiVisualArray[startNodeIndex].relY = 0.05; 
+        
+        const startNodeHeightRel = (nodiVisualArray[startNodeIndex].height || NODE_BASE_HEIGHT_PX) / h;
+        const startNodeBottomY = nodiVisualArray[startNodeIndex].relY + startNodeHeightRel + NODE_VERTICAL_SPACING_BASE_REL;
+        
+        const startColumnKey = nodiVisualArray[startNodeIndex].relX.toFixed(2);
+        maxYAtColumn[startColumnKey] = startNodeBottomY;
+
+        const logicalStartNode = flow.nodes[startNodeIndex];
+        const initialVisitedInPath = new Set(); // Set iniziale per il percorso principale
+
+        if (logicalStartNode.type === "if" && typeof logicalStartNode.next === "object") {
+            initialVisitedInPath.add(startNodeIndex); // Aggiungi lo start node se è un IF prima di ramificare
+            let branchInitialTopY = nodiVisualArray[startNodeIndex].relY + startNodeHeightRel + IF_BRANCH_START_Y_OFFSET_REL;
+            const trueNextIndex = parseInt(logicalStartNode.next.true);
+            const falseNextIndex = parseInt(logicalStartNode.next.false);
+
+            if (!isNaN(trueNextIndex) && flow.nodes[trueNextIndex] && nodiVisualArray[trueNextIndex]) {
+                calculateNodeYRecursive(trueNextIndex, branchInitialTopY, new Set(initialVisitedInPath));
+            }
+            if (!isNaN(falseNextIndex) && flow.nodes[falseNextIndex] && nodiVisualArray[falseNextIndex]) {
+                calculateNodeYRecursive(falseNextIndex, branchInitialTopY, new Set(initialVisitedInPath));
+            }
+        } else if (typeof logicalStartNode.next === "string" && logicalStartNode.next !== null) {
+            const firstNextIndex = parseInt(logicalStartNode.next);
+            if (!isNaN(firstNextIndex) && flow.nodes[firstNextIndex] && nodiVisualArray[firstNextIndex]) {
+                 initialVisitedInPath.add(startNodeIndex); // Aggiungi lo start node prima di procedere
+                 calculateNodeYRecursive(firstNextIndex, startNodeBottomY, initialVisitedInPath);
+            }
+        }
+    } else if (flow.nodes.length > 0) {
+        console.warn("calcoloY: Nodo di start non trovato o non valido.");
+    }
+}
+
 
   /**
    * Nasconde il popup utilizzato per modificare le informazioni di un nodo esistente.
