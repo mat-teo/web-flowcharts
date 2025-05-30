@@ -6,8 +6,15 @@
         <title>BaseFlow</title>
         <link rel="stylesheet" href="style.css">
         <link rel="icon" type="image/png" href="icon.png" />
+        <link rel="manifest" href="manifest.json">
     </head>
     <body>
+        <script>
+        if('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js', { scope: '/4ib/gr9/' });
+        }
+        </script>
+
         <div id="container">
             <div id="toolbar">
 

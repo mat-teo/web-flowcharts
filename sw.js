@@ -3,7 +3,7 @@ const CACHE_NAME = `baseflow-v1`;
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    cache.addAll([
+     const filesToCache = [
       '/',
       'index.html',
       'script.js',
@@ -15,7 +15,17 @@ self.addEventListener('install', event => {
       'icon.png',
       'logoBaseFlow.png',
       'manifest.json'
-    ]);
+    ];
+
+    for (const file of filesToCache) {
+      try {
+        await cache.add(file);
+        console.log(`Cached: ${file}`);
+      } catch (err) {
+        console.error(`Failed to cache: ${file}`, err);
+      }
+    }
+
   })());
 });
 
