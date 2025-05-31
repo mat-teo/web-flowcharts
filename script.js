@@ -189,63 +189,129 @@ function drawLine(x1, y1, x2, y2, salva, fromNodeIndex, toNodeIndex, arrowType) 
  * Disegna l'intero flowchart (nodi e frecce) sul canvas.
  * @param {Array} forme - Array degli oggetti nodo visuali da disegnare.
  */
+function findJoinNode(ifNodeIndex) {
+    const ifNode = flow.nodes[ifNodeIndex];
+    if (!ifNode || !ifNode.next) return null; // Add null check
+    
+    let truePathEnd = parseInt(ifNode.next.true);
+    let falsePathEnd = parseInt(ifNode.next.false);
+    
+    // Add checks to ensure nodes exist
+    if (!flow.nodes[truePathEnd] || !flow.nodes[falsePathEnd]) return null;
+    
+    // Trova l'ultimo nodo del ramo true
+    while (flow.nodes[truePathEnd] && flow.nodes[truePathEnd].next !== ifNode.join) {
+        truePathEnd = parseInt(flow.nodes[truePathEnd].next);
+        if (isNaN(truePathEnd)) break; // Prevent infinite loops
+    }
+    
+    // Trova l'ultimo nodo del ramo false
+    while (flow.nodes[falsePathEnd] && flow.nodes[falsePathEnd].next !== ifNode.join) {
+        falsePathEnd = parseInt(flow.nodes[falsePathEnd].next);
+        if (isNaN(falsePathEnd)) break; // Prevent infinite loops
+    }
+    
+    // Il nodo di join è il successivo comune
+    if (!flow.nodes[truePathEnd] || !flow.nodes[falsePathEnd]) return null;
+    
+    return flow.nodes[truePathEnd].next === flow.nodes[falsePathEnd].next ? 
+        parseInt(flow.nodes[truePathEnd].next) : null;
+}
 
+
+/**
+ * FUNZIONE PRINCIPALE draw(forme):
+ * - Calcola quanti incoming ha ciascun nodo logico (flow.nodes).
+ * - Costruisce joinSet = { indici di nodo con almeno 2 incoming }.
+ * - Disegna nodi (colori, forme, testo).
+ * - Poi, per ogni collegamento “next”:
+ *     • Se proviene da un IF (ramo true/false), usa drawArrowFromRight/Left.
+ *     • Altrimenti (“normal”), se il target ∈ joinSet → spezza in 3 spezzoni (verticale, orizzontale, verticale).
+ *       Altrimenti, disegna un’unica linea retta con drawLine(...).
+ */
 function draw(forme) {
-  resizeCanvasToFitNodes(forme);
-  ctx.clearRect(0, 0, w, h); // Pulisce il canvas
-  frecce = []; // Resetta l'array delle frecce
+  // === 1) Calcolo incomingCount per ciascun nodo logico ===
+  const incomingCount = Array(flow.nodes.length).fill(0);
 
-  // Blocco 1: Disegna tutti i nodi con forme personalizzate
+  for (let i = 0; i < flow.nodes.length; i++) {
+    const nd = flow.nodes[i];
+    if (!nd) continue;
+
+    if (nd.type === "if" && typeof nd.next === "object" && nd.next !== null) {
+      const tIdx = parseInt(nd.next.true,  10);
+      const fIdx = parseInt(nd.next.false, 10);
+      if (!isNaN(tIdx) && tIdx < incomingCount.length) incomingCount[tIdx]++;
+      if (!isNaN(fIdx) && fIdx < incomingCount.length) incomingCount[fIdx]++;
+    }
+    else if (typeof nd.next === "string" && nd.next !== null) {
+      const nIdx = parseInt(nd.next, 10);
+      if (!isNaN(nIdx) && nIdx < incomingCount.length) incomingCount[nIdx]++;
+    }
+  }
+
+  // === 2) Costruisco joinSet: tutti i k con incomingCount[k] ≥ 2 ===
+  const joinSet = new Set();
+  for (let k = 0; k < incomingCount.length; k++) {
+    if (incomingCount[k] >= 2) {
+      joinSet.add(k);
+    }
+  }
+  console.log(">> joinSet (nodi con ≥2 incoming):", Array.from(joinSet));
+
+  // === 3) Adatto dinamicamente il canvas e resetto frecce ===
+  resizeCanvasToFitNodes(forme);
+  ctx.clearRect(0, 0, w, h);
+  frecce = [];
+
+  // === 4) BLOCCO 1: Disegno di tutti i nodi (colori, forme, testo) ===
   for (let i = 0; i < forme.length; i++) {
     const node = forme[i];
-    if (!node) {
-      console.warn(`draw: nodo visuale all'indice ${i} non definito.`);
-      continue;
-    }
+    if (!node) continue;
 
-    // Determina colore in base al tipo
+    // 4.a) Determino il colore di sfondo in base a flow.nodes[i].type
     const tipo = flow.nodes[i]?.type;
     let coloreNodo;
     switch (tipo) {
-      case "start":       coloreNodo = "green";     break;
-      case "end":         coloreNodo = "red";       break;
+      case "start":       coloreNodo = "green";      break;
+      case "end":         coloreNodo = "red";        break;
       case "read": case "input":   coloreNodo = "gray";       break;
-      case "write": case "output": case "print":     coloreNodo = "lightblue"; break;
+      case "write": case "output": case "print":     coloreNodo = "lightblue";  break;
       case "assign": case "assignment": coloreNodo = "yellow";    break;
-      case "if":          coloreNodo = "orange";    break;
-      default:            coloreNodo = node.color;  break;
+      case "if":          coloreNodo = "orange";     break;
+      default:            coloreNodo = node.color;   break;
     }
 
-    // Coordinate di base
+    // 4.b) Calcolo le coordinate in pixel dell’angolo alto‐sinistro
     const x0 = node.relX * w - node.width / 2;
     const y0 = node.relY * h - node.height / 2;
     const cx = x0 + node.width / 2;
     const cy = y0 + node.height / 2;
 
-    // **Disegna la forma corretta**
+    // 4.c) Disegno della forma (rettangolo arrotondato, parallelogramma, rombo, o rettangolo normale)
     ctx.fillStyle   = coloreNodo;
     ctx.strokeStyle = "black";
+
     switch (tipo) {
       case "start":
       case "end":
-        // Rettangolo con angoli arrotondati
+        // Rettangolo arrotondato, raggio = 10px
         drawRoundedRect(x0, y0, node.width, node.height, 10);
         break;
 
       case "read": case "input":
       case "write": case "output": case "print":
       case "assign": case "assignment":
-        // Parallelogramma con skew di 20px
+        // Parallelogramma con skew = 20px
         drawParallelogram(x0, y0, node.width, node.height, 20);
         break;
 
       case "if":
-        // Rombo
+        // Rombo (diamante)
         drawDiamond(x0, y0, node.width, node.height);
         break;
 
       default:
-        // Rettangolo classico
+        // Rettangolo standard
         ctx.beginPath();
         ctx.rect(x0, y0, node.width, node.height);
         ctx.closePath();
@@ -254,11 +320,11 @@ function draw(forme) {
     ctx.fill();
     ctx.stroke();
 
-    // Testo all’interno
+    // 4.d) Scrivo il testo (centrato)
     if (node.text) {
       let toWrite = node.text;
-      if (flow.nodes[i] && !["start","end"].includes(flow.nodes[i].type)) {
-        toWrite += ":\n" + (flow.nodes[i].info || "empty");
+      if (flow.nodes[i] && !["start", "end"].includes(flow.nodes[i].type)) {
+        toWrite += ":\n" + (flow.nodes[i].info || "");
       }
       ctx.font         = `bold 16px Arial`;
       ctx.fillStyle    = "black";
@@ -268,29 +334,41 @@ function draw(forme) {
     }
   }
 
-  // Blocco 2: Disegna le frecce (come prima, senza modifiche)
+  // === 5) BLOCCO 2: Disegno delle frecce tra i nodi ===
   for (let i = 0; i < forme.length; i++) {
     const node  = forme[i];
     const logic = flow.nodes[i];
     if (!logic || !node) continue;
 
+    // Coordinate del centro del nodo (X) e del centro verticale (Y)
     const xMid       = node.relX * w;
     const yMid       = node.relY * h;
     const nodeHeight = node.height;
 
+    // 5.a) Se è un IF, disegno i due rami TRUE/FALSE “a gomito” (drawArrowFromRight/Left)
     if (logic.type === "if" && typeof logic.next === "object" && logic.next !== null) {
       const trueIndex  = parseInt(logic.next.true,  10);
       const falseIndex = parseInt(logic.next.false, 10);
-      if (!isNaN(trueIndex)  && forme[trueIndex]) {
+
+      if (!isNaN(trueIndex) && forme[trueIndex]) {
         drawArrowFromRight(node, forme[trueIndex], "T", i, trueIndex);
       }
       if (!isNaN(falseIndex) && forme[falseIndex]) {
         drawArrowFromLeft(node, forme[falseIndex], "F", i, falseIndex);
       }
-    } 
+    }
+    // 5.b) Altrimenti, se next è una stringa (nodo “normale”), verifico se target ∈ joinSet
     else if (typeof logic.next === "string" && logic.next !== null) {
       const nextIndex = parseInt(logic.next, 10);
-      if (!isNaN(nextIndex) && forme[nextIndex]) {
+      if (isNaN(nextIndex) || !forme[nextIndex]) continue;
+
+      // 5.b.1) Se il target è in joinSet → disegno “gomito” con 3 spezzoni
+      if (joinSet.has(nextIndex)) {
+        console.log(`→ Nodo ${i} sta puntando a join ${nextIndex}; disegno gomito`);
+        drawJoinConnectionFromLast(node, forme[nextIndex], i, nextIndex);
+      }
+      // 5.b.2) Altrimenti → disegno una linea retta normale
+      else {
         const target = forme[nextIndex];
         drawLine(
           xMid,
@@ -306,6 +384,79 @@ function draw(forme) {
     }
   }
 }
+
+
+/**
+ * Helper che spezza in 3 spezzoni la connessione da “lastNode” → “joinNode”:
+ *   1) verticale (da lastNode fino a midY)
+ *   2) orizzontale (da startX fino a targetX, a quota midY)
+ *   3) verticale breve (da midY fino al bordo superiore di joinNode)
+ *
+ * @param {object} lastNode       – Oggetto visuale di partenza (ha relX, relY, width, height)
+ * @param {object} joinNode       – Oggetto visuale di destinazione
+ * @param {number} fromNodeIndex  – Indice logico di lastNode in flow.nodes
+ * @param {number} toNodeIndex    – Indice logico di joinNode in flow.nodes
+ */
+function drawJoinConnectionFromLast(lastNode, joinNode, fromNodeIndex, toNodeIndex) {
+  // 1) Calcolo il punto di partenza: centro X, bordo inferiore di lastNode
+  const startX = lastNode.relX * w;
+  const startY = lastNode.relY * h + lastNode.height / 2;
+
+  // 2) Calcolo il bordo superiore di joinNode
+  const targetX = joinNode.relX * w;
+  const targetY = joinNode.relY * h - joinNode.height / 2;
+
+  // 3) Definisco midY come 25px sopra targetY (gap per il gomito)
+  const verticalGap = 25;
+  const midY        = targetY - verticalGap;
+
+  console.log(
+    `   Gomito → (${startX.toFixed(1)},${startY.toFixed(1)}) → `,
+    `(${startX.toFixed(1)},${midY.toFixed(1)}) → `,
+    `(${targetX.toFixed(1)},${midY.toFixed(1)}) → `,
+    `(${targetX.toFixed(1)},${targetY.toFixed(1)})`
+  );
+
+  // 4.a) Traccio il primo tratto verticale: da (startX,startY) a (startX,midY)
+  drawLine(startX, startY, startX, midY, true, fromNodeIndex, toNodeIndex, "normal");
+  // 4.b) Traccio il tratto orizzontale: da (startX,midY) a (targetX,midY)
+  drawLine(startX, midY, targetX, midY, true, fromNodeIndex, toNodeIndex, "normal");
+  // 4.c) Traccio il tratto verticale breve: da (targetX,midY) a (targetX,targetY)
+  drawLine(targetX, midY, targetX, targetY, true, fromNodeIndex, toNodeIndex, "normal");
+}
+
+
+
+function drawJoinConnection(fromNode, toNode, fromIndex, toIndex) {
+  const fromX = fromNode.relX * w;
+  const fromY = fromNode.relY * h + fromNode.height / 2;
+  const toX = toNode.relX * w;
+  const toY = toNode.relY * h - toNode.height / 2;
+  
+  // Calcola l'offset verticale in base all'altezza del nodo
+  const joinY = Math.max(fromY, toY) + 80; 
+  
+  // Linea verticale dal nodo if al punto di join
+  drawLine(fromX, fromY, fromX, joinY, false);
+  
+  // Linea orizzontale di join
+  drawLine(fromX, joinY, toX, joinY, true, fromIndex, toIndex, 'join');
+  
+  // Linea verticale dal punto di join al nodo successivo
+  drawLine(toX, joinY, toX, toY, false);
+}
+
+function findParentIf(nodeIndex) {
+  let currentIndex = nodeIndex;
+  while (currentIndex >= 0) {
+    if (flow.nodes[currentIndex]?.type === "if") {
+      return currentIndex;
+    }
+    currentIndex--;
+  }
+  return -1;
+}
+
 // Rettangolo con angoli arrotondati
 function drawRoundedRect(x, y, w, h, r) {
   ctx.beginPath();
@@ -457,8 +608,8 @@ function inserisciNodo(tipo) {
     }
 
     const parentNodeIndex = clickedArrow.fromNodeIndex;
-    const originalTargetNodeIndex = clickedArrow.toNodeIndex; // Indice a cui la freccia puntava ORIGINARIAMENTE
-    const newActualNodeIndex = originalTargetNodeIndex; // Il nuovo nodo verrà inserito a questo indice, shiftando l'originale
+    const originalTargetNodeIndex = clickedArrow.toNodeIndex;
+    const newActualNodeIndex = originalTargetNodeIndex;
 
     console.log(`inserisciNodo INFO: Inizio. Tipo: ${tipo}, Freccia ID: ${clickedArrow.id}, Freccia Tipo: ${clickedArrow.type}`);
     console.log(`  parentNodeIndex: ${parentNodeIndex}, originalTargetNodeIndex: ${originalTargetNodeIndex}, newActualNodeIndex: ${newActualNodeIndex}`);
@@ -485,166 +636,156 @@ function inserisciNodo(tipo) {
     flow.nodes.splice(newActualNodeIndex, 0, newNodeLogic);
     console.log(`inserisciNodo INFO: newNodeLogic inserito in flow.nodes all'indice ${newActualNodeIndex}. Lunghezza flow.nodes: ${flow.nodes.length}`);
 
-    // CICLO FOR PER AGGIORNARE GLI INDICI LOGICI (con controlli robusti)
+    // CICLO FOR PER AGGIORNARE GLI INDICI LOGICI (incluso il join)
     for (let i = 0; i < flow.nodes.length; i++) {
         let n = flow.nodes[i];
-        if (n === newNodeLogic) { continue; } // Salta il nuovo nodo
+        if (n === newNodeLogic) { continue; }
 
         if (n.type === "if" && typeof n.next === "object" && n.next !== null) {
+            // Aggiornamento proprietà join
+            if (n.join) {
+                let oldJoin = parseInt(n.join);
+                if (!isNaN(oldJoin) && oldJoin >= newActualNodeIndex) {
+                    n.join = (oldJoin + 1).toString();
+                }
+            }
+            
+            // Aggiornamento rami true/false
             if (n.next.true !== null && typeof n.next.true === 'string') {
                 let oldTrue = parseInt(n.next.true);
-                if (!isNaN(oldTrue) && oldTrue >= newActualNodeIndex) { n.next.true = (oldTrue + 1).toString(); }
-            } else if (n.next.true !== null) { console.warn(`inserisciNodo AVVISO: Nodo IF [${i}] next.true non è una stringa valida:`, n.next.true); }
-
+                if (!isNaN(oldTrue) && oldTrue >= newActualNodeIndex) { 
+                    n.next.true = (oldTrue + 1).toString(); 
+                }
+            }
+            
             if (n.next.false !== null && typeof n.next.false === 'string') {
                 let oldFalse = parseInt(n.next.false);
-                if (!isNaN(oldFalse) && oldFalse >= newActualNodeIndex) { n.next.false = (oldFalse + 1).toString(); }
-            } else if (n.next.false !== null) { console.warn(`inserisciNodo AVVISO: Nodo IF [${i}] next.false non è una stringa valida:`, n.next.false); }
+                if (!isNaN(oldFalse) && oldFalse >= newActualNodeIndex) { 
+                    n.next.false = (oldFalse + 1).toString(); 
+                }
+            }
         } else if (n.next !== null && typeof n.next === 'string') {
             let oldNext = parseInt(n.next);
-            if (!isNaN(oldNext) && oldNext >= newActualNodeIndex) { n.next = (oldNext + 1).toString(); }
-        } else if (n.next !== null && n.next !== "") { console.warn(`inserisciNodo AVVISO: Nodo [${i}] next non è una stringa valida o null:`, n.next); }
-    }
-    console.log(`inserisciNodo INFO: Ciclo FOR per aggiornamento indici completato.`);
-
-   // In script.js
-// Dentro la funzione inserisciNodo
-
-// ... (codice fino alla determinazione di actualParentNodeLogic) ...
-
-const actualParentNodeLogic = flow.nodes[parentNodeIndex];
-let isJoinInsertion = false; // Determina se è un inserimento post-join
-let isBranchInsertion = false; // Determina se è un inserimento in un ramo IF standard
-
-if (actualParentNodeLogic && actualParentNodeLogic.type === 'if' && typeof actualParentNodeLogic.next === 'object') {
-    const originalTargetNumeric = parseInt(originalTargetNodeIndex);
-    const expectedIndexOfOriginalTargetAfterShift = (originalTargetNumeric + (newActualNodeIndex <= originalTargetNumeric ? 1 : 0)).toString();
-
-    // È un inserimento post-join SOLO se si clicca su un segmento specificamente marcato come "join_segment"
-    // E l'altro ramo dell'IF puntava anch'esso al target originale (ora shiftato)
-    if ((clickedArrow.type === 'if_true_join_segment') &&
-        actualParentNodeLogic.next.false === expectedIndexOfOriginalTargetAfterShift) {
-        isJoinInsertion = true;
-        console.log("inserisciNodo DEBUG JOIN: Rilevato JOIN tramite if_true_join_segment e corrispondenza next.false");
-    } else if ((clickedArrow.type === 'if_false_join_segment') &&
-               actualParentNodeLogic.next.true === expectedIndexOfOriginalTargetAfterShift) {
-        isJoinInsertion = true;
-        console.log("inserisciNodo DEBUG JOIN: Rilevato JOIN tramite if_false_join_segment e corrispondenza next.true");
-    }
-}
-
-// Determina se è un inserimento in un ramo standard (non join)
-if (!isJoinInsertion && actualParentNodeLogic && actualParentNodeLogic.type === 'if' &&
-    (clickedArrow.type === 'if_true' || clickedArrow.type === 'if_false')) {
-    isBranchInsertion = true;
-    console.log("inserisciNodo DEBUG JOIN: Rilevato BRANCH insertion (non join). ClickedArrow.type:", clickedArrow.type);
-}
-
-
-// AGGIORNAMENTO PUNTATORI LOGICI DEL NODO GENITORE
-if (actualParentNodeLogic) {
-    const newTargetForParent = newActualNodeIndex.toString();
-    if (isJoinInsertion) {
-        actualParentNodeLogic.next.true = newTargetForParent;
-        actualParentNodeLogic.next.false = newTargetForParent;
-        console.log(`inserisciNodo INFO: JOIN. ParentIF [${parentNodeIndex}] next.true E next.false -> ${newTargetForParent}`);
-    } else { // Include isBranchInsertion e normal
-        if (clickedArrow.type === 'normal') {
-            actualParentNodeLogic.next = newTargetForParent;
-            console.log(`inserisciNodo INFO: NORMAL. Parent [${parentNodeIndex}] next -> ${newTargetForParent}`);
-        } else if (clickedArrow.type === 'if_true' || clickedArrow.type === 'if_true_join_segment') { // Anche se if_true_join_segment non porta a isJoinInsertion, aggiorna solo il ramo true
-            actualParentNodeLogic.next.true = newTargetForParent;
-            console.log(`inserisciNodo INFO: IF_TRUE branch/segment. ParentIF [${parentNodeIndex}] next.true -> ${newTargetForParent}`);
-        } else if (clickedArrow.type === 'if_false' || clickedArrow.type === 'if_false_join_segment') { // Simile per false
-            actualParentNodeLogic.next.false = newTargetForParent;
-            console.log(`inserisciNodo INFO: IF_FALSE branch/segment. ParentIF [${parentNodeIndex}] next.false -> ${newTargetForParent}`);
+            if (!isNaN(oldNext) && oldNext >= newActualNodeIndex) { 
+                n.next = (oldNext + 1).toString(); 
+            }
         }
     }
-} else { /* ... errore parent non trovato ... */ }
-
-// CALCOLO DI newRelX PER IL NODO VISUALE
-const parentVisualNode = nodi[parentNodeIndex];
-let newRelX;
-const elbowOffsetPixels = 40;
-
-console.log(`inserisciNodo DEBUG X: Inizio calcolo newRelX. isJoinInsertion=${isJoinInsertion}, isBranchInsertion=${isBranchInsertion}, clickedArrow.type=${clickedArrow.type}`);
-if(parentVisualNode) console.log(`  parentVisualNode.relX: ${parentVisualNode.relX.toFixed(3)}`);
-
-
-if (isJoinInsertion && parentVisualNode) {
-    newRelX = parentVisualNode.relX; // Allinea con l'IF genitore per il join
-    console.log(`  newRelX calcolato (JOIN): ${newRelX.toFixed(3)}`);
-} else if (isBranchInsertion && parentVisualNode) { // Se è un inserimento in un ramo (non join)
-    if (clickedArrow.type === 'if_true') { // Solo per i tipi di freccia del gomito del ramo
-        const parentRightEdgeX_abs = parentVisualNode.relX * w + parentVisualNode.width / 2;
-        const midX_abs = parentRightEdgeX_abs + elbowOffsetPixels;
-        newRelX = midX_abs / w;
-        console.log(`  newRelX calcolato (RAMO TRUE - GOMITO): ${newRelX.toFixed(3)}`);
-    } else if (clickedArrow.type === 'if_false') { // Solo per i tipi di freccia del gomito del ramo
-        const parentLeftEdgeX_abs = parentVisualNode.relX * w - parentVisualNode.width / 2;
-        const midX_abs = parentLeftEdgeX_abs - elbowOffsetPixels;
-        newRelX = midX_abs / w;
-        console.log(`  newRelX calcolato (RAMO FALSE - GOMITO): ${newRelX.toFixed(3)}`);
-    } else { // Se è un _join_segment ma non un isJoinInsertion, o un tipo imprevisto per un ramo
-        newRelX = parentVisualNode.relX; // Fallback per sicurezza, o da rivedere
-        console.log(`  newRelX calcolato (RAMO - FALLBACK/SEGMENTO JOIN NON TRATTATO COME JOIN): ${newRelX.toFixed(3)}`);
+    
+    // GESTIONE SPECIFICA PER I JOIN
+    if (clickedArrow.type.includes('join_segment')) {
+        const parentIfIndex = findParentIf(parentNodeIndex);
+        if (parentIfIndex !== -1) {
+            // Inizializza il join se non esiste
+            if (!flow.nodes[parentIfIndex].join) {
+                flow.nodes[parentIfIndex].join = originalTargetNodeIndex.toString();
+            }
+            
+            // Aggiorna il punto di join con il nuovo nodo
+            flow.nodes[parentIfIndex].join = newActualNodeIndex.toString();
+            console.log(`Aggiornato join per nodo IF ${parentIfIndex}: ${flow.nodes[parentIfIndex].join}`);
+        }
     }
-} else if (parentVisualNode && clickedArrow.type === 'normal') { // Inserimento su una freccia normale
-    newRelX = parentVisualNode.relX;
-    console.log(`  newRelX calcolato (NORMAL): ${newRelX.toFixed(3)}`);
-} else if (parentVisualNode) { // Fallback per altri tipi di frecce se parentVisualNode esiste
-    newRelX = parentVisualNode.relX;
-    console.warn(`  newRelX WARN: Tipo di freccia non gestito specificamente per X (${clickedArrow.type}), allineato con parent. X: ${newRelX.toFixed(3)}`);
-}
-else { // parentVisualNode non trovato
-    newRelX = 0.35;
-    if (nodi.length > 0 && nodi[0]) { newRelX = nodi[0].relX; }
-    console.warn(`  newRelX WARN: Parent visual node [${parentNodeIndex}] non trovato. Usando fallback X: ${newRelX.toFixed(3)}`);
-}
 
-// ... (resto della funzione: clamp di newRelX, splice del nodo visuale, logging, calcoloY, draw) ...
+    // AGGIORNAMENTO PUNTATORI DEL NODO GENITORE
+    const actualParentNodeLogic = flow.nodes[parentNodeIndex];
+    let isJoinInsertion = false;
+    let isBranchInsertion = false;
 
+    if (actualParentNodeLogic && actualParentNodeLogic.type === 'if' && typeof actualParentNodeLogic.next === 'object') {
+        const originalTargetNumeric = parseInt(originalTargetNodeIndex);
+        const expectedIndexOfOriginalTargetAfterShift = (originalTargetNumeric + (newActualNodeIndex <= originalTargetNumeric ? 1 : 0)).toString();
+
+        if ((clickedArrow.type === 'if_true_join_segment') &&
+            actualParentNodeLogic.next.false === expectedIndexOfOriginalTargetAfterShift) {
+            isJoinInsertion = true;
+        } else if ((clickedArrow.type === 'if_false_join_segment') &&
+                   actualParentNodeLogic.next.true === expectedIndexOfOriginalTargetAfterShift) {
+            isJoinInsertion = true;
+        }
+    }
+
+    if (!isJoinInsertion && actualParentNodeLogic && actualParentNodeLogic.type === 'if' &&
+        (clickedArrow.type === 'if_true' || clickedArrow.type === 'if_false')) {
+        isBranchInsertion = true;
+    }
+
+    if (actualParentNodeLogic) {
+        const newTargetForParent = newActualNodeIndex.toString();
+        if (isJoinInsertion) {
+            // Aggiorna entrambi i rami per puntare al nuovo nodo di join
+            actualParentNodeLogic.next.true = newTargetForParent;
+            actualParentNodeLogic.next.false = newTargetForParent;
+        } else {
+            // Aggiorna solo il ramo specifico
+            if (clickedArrow.type === 'normal') {
+                actualParentNodeLogic.next = newTargetForParent;
+            } else if (clickedArrow.type === 'if_true' || clickedArrow.type === 'if_true_join_segment') {
+                actualParentNodeLogic.next.true = newTargetForParent;
+            } else if (clickedArrow.type === 'if_false' || clickedArrow.type === 'if_false_join_segment') {
+                actualParentNodeLogic.next.false = newTargetForParent;
+            }
+        }
+    }
+
+    // CALCOLO POSIZIONE X DEL NUOVO NODO
+    const parentVisualNode = nodi[parentNodeIndex];
+    let newRelX;
+    const elbowOffsetPixels = 40;
+
+    if (isJoinInsertion && parentVisualNode) {
+    // Allineamento verticale con il nodo if padre
+          newRelX = parentVisualNode.relX;
+      } else if (isBranchInsertion && parentVisualNode) {
+          // Mantieni l'offset originale per i rami
+          if (clickedArrow.type === 'if_true') {
+              const parentRightEdgeX_abs = parentVisualNode.relX * w + parentVisualNode.width / 2;
+              const midX_abs = parentRightEdgeX_abs + elbowOffsetPixels;
+              newRelX = midX_abs / w;
+          } else if (clickedArrow.type === 'if_false') {
+              const parentLeftEdgeX_abs = parentVisualNode.relX * w - parentVisualNode.width / 2;
+              const midX_abs = parentLeftEdgeX_abs - elbowOffsetPixels;
+              newRelX = midX_abs / w;
+          }
+      }else if (parentVisualNode && clickedArrow.type === 'normal') {
+        // Per frecce normali: mantieni la stessa X
+        newRelX = parentVisualNode.relX;
+    } else if (parentVisualNode) {
+        // Fallback per altri tipi di freccia
+        newRelX = parentVisualNode.relX;
+    } else {
+        // Se non c'è parent, posizione di default
+        newRelX = 0.35;
+        if (nodi.length > 0 && nodi[0]) { 
+            newRelX = nodi[0].relX; 
+        }
+    }
+
+    // CLAMP DELLA POSIZIONE X
     const nodeVisualWidth = 100;
     let minPossibleRelX = (nodeVisualWidth / 2) / w + 0.01;
     let maxPossibleRelX = 1 - ((nodeVisualWidth / 2) / w) - 0.01;
     if (newRelX < minPossibleRelX) newRelX = minPossibleRelX;
     if (newRelX > maxPossibleRelX) newRelX = maxPossibleRelX;
-    console.log(`  newRelX finale (dopo clamp): ${newRelX.toFixed(3)}`);
 
+    // INSERIMENTO DEL NUOVO NODO VISUALE
     nodi.splice(newActualNodeIndex, 0, {
-        relX: newRelX, relY: 0, width: nodeVisualWidth, height: 40,
-        color: "white", text: tipo.charAt(0).toUpperCase() + tipo.slice(1)
+        relX: newRelX, 
+        relY: 0, 
+        width: nodeVisualWidth, 
+        height: 40,
+        color: "white", 
+        text: tipo.charAt(0).toUpperCase() + tipo.slice(1)
     });
-    console.log(`inserisciNodo INFO: Nodo visuale inserito in 'nodi' all'indice ${newActualNodeIndex} con relX=${newRelX.toFixed(3)}. Lunghezza nodi: ${nodi.length}`);
 
-
-    console.log("--- STATO FLOW.NODES PRIMA DI CALCOLOY (in inserisciNodo) ---");
-    for (let idx = 0; idx < flow.nodes.length; idx++) {
-        const node = flow.nodes[idx];
-        let nextInfo = "";
-        if (node && node.type === "if" && node.next) {
-            nextInfo = `TRUE -> ${node.next.true}, FALSE -> ${node.next.false}`;
-        } else if (node && node.next !== undefined) {
-            nextInfo = `NEXT -> ${node.next}`;
-        } else if (node) {
-            nextInfo = `NEXT -> (non definito o invalido)`;
-        } else { console.warn(`Nodo logico all'indice ${idx} non definito durante il logging.`); continue; }
-        let nodeType = node && node.type ? node.type : "tipo_sconosciuto";
-        let nodeInfoVal = node && node.info !== undefined ? node.info : "info_sconosciuta";
-        console.log(`[${idx}] type: ${nodeType}, info: "${nodeInfoVal}", ${nextInfo}`);
-    }
-    console.log("-------------------------------------------------------");
-
+    // RICALCOLO POSIZIONI Y E RIDISEAGNO
     calcoloY(nodi);
     draw(nodi);
     chiudiPopup();
     frecceSelected = -1;
-} // Fine di inserisciNodo
+}
 
-  /**
-   * Gestisce il click su un nodo.
-   * Se un nodo (non 'start' o 'end') è cliccato, apre il popup per modificarne le informazioni.
-   */
+
   function clickNodo(event) {
     // Blocco 1: Calcola le coordinate del click relative al canvas
     let rect = canvas.getBoundingClientRect();
@@ -852,6 +993,98 @@ else { // parentVisualNode non trovato
   // In script.js, sostituisci la vecchia funzione calcoloY
 
 // In script.js, sostituisci la tua intera funzione calcoloY
+/**
+ * Ritorna l’indice dell’ultimo nodo del ramo (true o false) prima del join.
+ * Se il ramo non ha join (true ≠ false), restituisce -1.
+ *
+ * @param {number} ifIndex  – Indice del nodo IF in flow.nodes
+ * @param {"true"|"false"} branchType – Scegliamo se il ramo “true” o “false”
+ * @returns {number} indice dell’ultimo nodo del ramo, oppure -1 se non è ramo join
+ */
+/**
+ * Ritorna l’indice dell’ultimo nodo del ramo (true o false) prima del join.
+ * Se il ramo non converge (true ≠ false) o non trova join, restituisce -1.
+ *
+ * @param {number} ifIndex      – Indice del nodo IF in flow.nodes
+ * @param {"true"|"false"} branchType – Scegliamo “true” o “false”
+ * @returns {number} indice dell’ultimo nodo del ramo prima del join, oppure -1
+ */
+function findLastNodeInBranch(ifIndex, branchType) {
+  const ifNode = flow.nodes[ifIndex];
+  if (!ifNode || typeof ifNode.next !== "object") return -1;
+
+  // Indice di partenza del ramo (TRUE o FALSE)
+  let current = parseInt(ifNode.next[branchType], 10);
+  // Controlliamo se TRUE e FALSE convergono sullo stesso target
+  const otherBranch = branchType === "true" ? "false" : "true";
+  if (parseInt(ifNode.next[otherBranch], 10) !== current) {
+    // Non c’è convergenza immediata: nessun join
+    return -1;
+  }
+  // Ora “current” è l’indice del nodo su cui si riconvergono
+  const joinIndex = current;
+
+  // Scorriamo lungo il ramo finché non troviamo chi punta direttamente a joinIndex
+  while (true) {
+    const node = flow.nodes[current];
+    if (!node) break;
+    // Se questo nodo fa next === joinIndex, allora è l’ultimo prima del join
+    if (node.next === joinIndex.toString()) {
+      return current;
+    }
+    // Altrimenti scendiamo lungo il flusso “lineare”
+    const nextIdx = parseInt(node.next, 10);
+    if (isNaN(nextIdx)) break;
+    current = nextIdx;
+  }
+  return -1;
+}
+
+/**
+ * Disegna, a “gomito”, il collegamento dal **lastNode** al **joinNode**:
+ * 1) Scende verticalmente un po’ sotto lastNode
+ * 2) Va orizzontale fino all’X di joinNode
+ * 3) Scende verticalmente fino al bordo superiore di joinNode
+ *
+ * @param {object} lastNode       – Oggetto visuale (con relX, relY, width, height)
+ * @param {object} joinNode       – Oggetto visuale del nodo di join (same format)
+ * @param {number} fromNodeIndex  – Indice logico di lastNode in flow.nodes
+ * @param {number} toNodeIndex    – Indice logico di joinNode in flow.nodes
+ */
+/**
+ * Disegna, a “gomito”, la connessione dal lastNode al joinNode:
+ *   1) Verticale: dal bordo inferiore di lastNode a un punto Y intermedio (midY)
+ *   2) Orizzontale: da (lastNode.relX*w, midY) a (joinNode.relX*w, midY)
+ *   3) Verticale: da (joinNode.relX*w, midY) al bordo superiore di joinNode
+ *
+ * @param {object} lastNode       – Nodo grafico (has relX, relY, width, height)
+ * @param {object} joinNode       – Nodo grafico di join (has relX, relY, width, height)
+ * @param {number} fromNodeIndex  – Indice di lastNode in flow.nodes
+ * @param {number} toNodeIndex    – Indice di joinNode in flow.nodes
+ */
+function drawJoinConnectionFromLast(lastNode, joinNode, fromNodeIndex, toNodeIndex) {
+  // 1) Calcolo coordinate di partenza (centro del bordo inferiore di lastNode)
+  const startX = lastNode.relX * w;
+  const startY = lastNode.relY * h + lastNode.height / 2;
+
+  // 2) Calcolo coordinate del bordo superiore di joinNode (destinazione finale)
+  const targetX = joinNode.relX * w;
+  const targetY = joinNode.relY * h - joinNode.height / 2;
+
+  // 3) Scegliamo un Y intermedio (midY) che sia “qualche pixel” sopra targetY
+  const verticalGap = 25;              // 25px sopra il nodo di join
+  const midY = targetY - verticalGap;
+
+  // 4.a) Segmento verticale: da (startX, startY) a (startX, midY)
+  drawLine(startX, startY, startX, midY, true, fromNodeIndex, toNodeIndex, "normal");
+
+  // 4.b) Segmento orizzontale: da (startX, midY) a (targetX, midY)
+  drawLine(startX, midY, targetX, midY, true, fromNodeIndex, toNodeIndex, "normal");
+
+  // 4.c) Segmento verticale breve: da (targetX, midY) a (targetX, targetY)
+  drawLine(targetX, midY, targetX, targetY, true, fromNodeIndex, toNodeIndex, "normal");
+}
+
 
 function calcoloY(nodiVisualArray) {
     if (!flow.nodes.length || !nodiVisualArray.length || !h) {
