@@ -899,18 +899,23 @@ function inserisciNodo(tipo) {
       switch (tipo) {
         case "int":
           if (/^-?\d+$/.test(val3)) { fValid = true; valoreConvertito = parseInt(val3); }
-          else { errMsg = "Il valore deve essere un intero valido."; }
+          else { errMsg = "The value must be a valid integer number."; }
           break;
         case "float":
           if (/^-?\d*\.\d+$/.test(val3) || /^-?\d+\.?\d*$/.test(val3)) { fValid = true; valoreConvertito = parseFloat(val3); }
-          else { errMsg = "Il valore deve essere un numero decimale valido."; }
+          else { errMsg = "The value must be a valid decimal number."; }
           break;
         case "string":
           fValid = true; valoreConvertito = val3;
           break;
       }
+
+      if (flow.variables.some(v => v.name === val1)) {
+        errMsg = `A variable named '${val1}' already exists.`;
+        fValid=false;
+      }
     } else {
-      errMsg = "Nome variabile non valido.";
+      errMsg = "Invalid variable name.";
     }
 
     // Blocco 4: Se i dati sono validi, aggiorna/aggiunge la variabile logica e gestisce la tabella.
@@ -932,7 +937,7 @@ function inserisciNodo(tipo) {
       let errorCell = errorRow.insertCell();
       errorCell.colSpan = 3;
       errorCell.className = "error-message";
-      errorCell.textContent = "Dati non validi. " + errMsg;
+      errorCell.textContent =  "ERROR: " + errMsg;
       target.addEventListener("input", () => { if (errorRow.parentNode) errorRow.remove(); }, { once: true });
     }
   }
