@@ -341,7 +341,11 @@ function checkCondition(condition, variables) {
     }
 
     try {
-        return eval(!!(expression));
+        if(!isNaN(expression)){
+          return eval(!!(expression));
+        }else{
+          return eval(expression);
+        }
     } catch (e) {
         throwError("in condition: " + expression + ". " + e.message);
         return {};
