@@ -644,6 +644,7 @@ function inserisciNodo(tipo) {
         if (n.type === "if" && typeof n.next === "object" && n.next !== null) {
             // Aggiornamento proprietà join
             if (n.join) {
+                console.log(n)
                 let oldJoin = parseInt(n.join);
                 if (!isNaN(oldJoin) && oldJoin >= newActualNodeIndex) {
                     n.join = (oldJoin + 1).toString();

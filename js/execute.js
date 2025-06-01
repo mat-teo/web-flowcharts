@@ -113,6 +113,10 @@ async function executeNode(node,currentNode,variables){
                     for (let j = 0; j < parts[i].length; j++) {
                       if (parts[i][j] == " ") {
                         if (isVar && variable !== "" && variable !== "'" && variable !== '"') {
+                          if(!existVariable(variable,variables)){
+                            throwError("in node " + currentNode + ": " + variable + " has not been declared")
+                            return null;
+                          }
                           let v = getVariable(variable, variables);
                           if (v) {
                             expression += v.value.toString();
@@ -126,6 +130,10 @@ async function executeNode(node,currentNode,variables){
                       }
                       if (!isNaN(parts[i][j]) || "+-*/".includes(parts[i][j])) {
                         if (isVar && variable !== "" && variable !== "'" && variable !== '"') {
+                          if(!existVariable(variable,variables)){
+                            throwError("in node " + currentNode + ": " + variable + " has not been declared")
+                            return null;
+                          }
                           let v = getVariable(variable, variables);
                           if (v) {
                             expression += v.value.toString();
@@ -142,6 +150,10 @@ async function executeNode(node,currentNode,variables){
                       }
                       if (isVar && j == parts[i].length - 1) {
                         if (variable !== "" && variable !== "'" && variable !== '"') {
+                          if(!existVariable(variable,variables)){
+                            throwError("in node " + currentNode + ": " + variable + " has not been declared")
+                            return null;
+                          } 
                           let v = getVariable(variable, variables);
                           if (v) {
                             expression += v.value.toString();
@@ -279,8 +291,15 @@ async function executeNode(node,currentNode,variables){
                   // Use word boundaries to avoid partial replacements
                   exp = exp.replace(new RegExp(`\\b${v.name}\\b`, 'g'), v.value.toString());
                 });
-
-                getVariable(varName,variables).value = eval(exp);
+                if(!existVariable(varName,variables)){
+                  throwError("in node " + currentNode + ": " + varName + " has not been declared")
+                  return null;
+                }
+                try{
+                  getVariable(varName,variables).value = eval(exp);
+                }catch(e){
+                  throwError("In node " + currentNode + ": invalid expression " + e);
+                }
                 currentNode = node.next;
                 break;
 
