@@ -284,13 +284,31 @@ function draw(forme) {
       default:            coloreNodo = node.color;   break;
     }
 
-    const x0 = node.relX * w - node.width / 2;
+    let x0 = node.relX * w - node.width / 2;
     const y0 = node.relY * h - node.height / 2;
     const cx = x0 + node.width / 2;
     const cy = y0 + node.height / 2;
 
+    // 4.c) Disegno della forma (rettangolo arrotondato, parallelogramma, rombo, o rettangolo normale)
     ctx.fillStyle   = coloreNodo;
     ctx.strokeStyle = "black";
+
+    let toWrite = node.text;
+      if (flow.nodes[i] && !["start", "end"].includes(flow.nodes[i].type)) {
+        toWrite += ":" + (flow.nodes[i].info || "");
+    }
+    const textMeasure = ctx.measureText(toWrite);
+    
+    let difference = node.width  - textMeasure.width + 20;
+    if(difference>100){
+      node.width = 100;
+      x0 = node.relX * w - node.width / 2;
+    }
+    if(node.width<(textMeasure.width+20)){
+      difference = textMeasure.width+20 - node.width;
+      x0 -= difference/2;
+      node.width = textMeasure.width+20;
+    }
 
     switch (tipo) {
       case "start":
@@ -314,11 +332,7 @@ function draw(forme) {
     ctx.fill();
     ctx.stroke();
 
-    if (node.text) {
-      let toWrite = node.text;
-      if (flow.nodes[i] && !["start", "end"].includes(flow.nodes[i].type)) {
-        toWrite += ":\n" + (flow.nodes[i].info || "");
-      }
+    if (node.text) {  
       ctx.font         = `bold 16px Arial`;
       ctx.fillStyle    = "black";
       ctx.textAlign    = "center";
