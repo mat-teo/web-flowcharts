@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>BaseFlow</title>
+        <link rel="stylesheet" href="style.css">
+        <link rel="icon" type="image/png" href="img/icon.png" />
+        <link rel="manifest" href="manifest.json">
+    </head>
+    <body>
+        <script>
+        if('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js', { scope: '/4ib/gr9/' });
+        }
+        </script>
+
+        <div id="container">
+            <div id="toolbar">
+
+            <img id="logo" src="img/logoBaseFlow.png" alt="BaseFlow Logo">
+
+            <button id="new-btn" onclick="
+            if(!saved && !isEmpty()){
+                document.getElementById('new-popup').classList = 'active'
+                document.getElementById('overlay').classList = 'active'
+            }
+            else{
+                location.reload()
+            }
+            ">New</button>
+            <button id="open-btn" onclick="document.getElementById('fileInput').click()">Open</button>
+            <input type="file" id="fileInput" style="display:none;" accept=".json" multiple="false" />
+            <button id="save-btn" onclick="saveFile()">Save</button>
+            <button id="run-btn" onclick="run()">Run</button>
+            <button id="export-python-btn" onclick="openPythonPopup()">Export as Python</button>
+
+            <button id="help-btn"  onclick="startTutorial()">Help</button>
+            </div>
+            <div id="main">
+            <div id="sidebar">
+                <label for="sidebar" id="variabiliLabel">VARIABLES</label>
+                <div id="tableContainer">
+                <table id="tabVariabili">
+                    <tr> 
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>
+                        <input class="inputVariable" data-tour-id="step-insert-name" type ="text">
+                        </td>
+                        <td>
+                        <select class="inputVariable"  data-tour-id="step-insert-type">
+                            <option value="int">Integer</option>
+                            <option value="float">Float</option>
+                            <option value="string">String</option>
+                        </select>
+                        </td>
+                        <td>
+                        <input class="inputVariable" data-tour-id="step-insert-value" type ="text">
+                        </td>
+                    </tr>
+                </table>
+                </div>
+            </div>    
+                 <div id="canvas-container">
+                    <canvas id="canvas" width="800" height="600"></canvas>
+                    <div id="popup-window">
+                    <div class="section" id="io-section">
+                        <h3>I/O</h3>
+                        <button id="input-btn" onclick="inserisciNodo('input')" class="io-btn">Input</button>
+                        <button id="output-btn" onclick="inserisciNodo('print')" class="io-btn">Output</button>
+                    </div>
+                    <div class="section" id="variables-section">
+                        <h3>Variables</h3>
+                        <button id="assign-btn" onclick="inserisciNodo('assign')" class="variables-btn">Assign</button>
+                    </div>
+                    <div class="section" id="control-section">
+                        <h3>Control</h3>
+                        <button id="if-btn" onclick="inserisciNodo('if')" class="control-btn">If</button>
+                    </div>
+                    <div class="section" id="loops-section">
+                        <h3>Loops</h3>
+                        <button id="while-btn" class="loops-btn">While</button>
+                        <button id="for-btn" class="loops-btn">For</button>
+                        <button id="do-while-btn" class="loops-btn">Do-While</button>
+                    </div>
+                    <button id="close-popup" onclick="chiudiPopup()">Close</button>
+                    </div>
+                    
+                    <div id="edit-node-popup">
+                        <h3 id="edit-node-title">Edit Node</h3>
+                        <input type="text" id="edit-node-input" placeholder="Enter node information">
+                        <button id="save-node-info" onclick="salvaInfo()">Save</button>
+                        <button id="save-node-info" onclick="deleteNode()">Delete</button>
+                        <button id="save-node-info" onclick="startEditTour()">Help</button>
+                        <button id="close-edit-popup" onclick="chiudiEditPopup()">Close</button>
+                    </div>
+
+                    <div id="save-popup">
+                    <h3>Save project</h3>
+                    <label for="filename-input">File name (without extension):</label><br>
+                    <input type="text" id="filename-input" placeholder="Insert file name"><br><br>
+                    <button id="save-confirm-btn" onclick="save(flow,document.getElementById('filename-input').value)">Save</button>
+                    <button id="save-cancel-btn" onclick="closeSavePopup()">Cancel</button>
+                    </div>
+
+                    <div id="new-popup" >
+                    <p>Do you want to continue without saving?</p>
+                    <button id="save-btn" onclick="document.getElementById('new-popup').classList.remove('active')
+                    document.getElementById('overlay').classList.remove('active')
+                    saveFile()">Save</button>
+                    <button id="continue-btn" onclick="location.reload()">New</button>
+                    <button id="cancel-btn" onclick="document.getElementById('overlay').classList.remove('active');
+                    document.getElementById('new-popup').classList.remove('active');">Cancel</button>
+                    </div>
+
+                    <div id="console-popup">
+                    <div id="console-buttons">
+                        <button onclick="(async () => {
+                            await executeFlow(flow);
+                            })();" id="console-exe">Execute</button>
+                        <button onclick="(async () => {
+                            await executeStep();
+                            })();" id="console-step">Step</button>
+                        <button onclick="resetFlow()" id="console-reset">Reset</button>
+                        <button onclick="clearConsole()" id="console-clear">Clear</button>
+                        <button onclick="startConsoleTour()" id="console-clear">Help</button>
+                        <button onclick="closeConsole()" id="console-close">Close</button>
+                    </div>
+                    <div id="console-output" role="log">
+                        <p>> Console ready...</p>
+                    </div>
+                    <div id="console-input-section">
+                        <input type="text" id="console-input"  placeholder="Enter a value...">
+                        <button id="console-send">Send</button>
+                    </div>
+                    </div>
+                    
+                    <div id="python-popup">
+                    <h3>Python Translation</h3>
+                    <textarea id="python-code" rows="15" cols="60" readonly></textarea>
+                    <div >
+                        <button onclick="copyPythonCode()" id="copy-python-btn">Copy</button>
+                        <button onclick="downloadPythonCode()" id="download-python-btn">Download</button>
+                        <button onclick="closePythonPopup()" id="close-python-btn">Close</button>
+                    </div>
+                    </div>
+
+                    <div id="overlay" ></div>
+                </div>
+            </div>
+            
+        </div>
+        <footer id="credits-section">
+            <div>
+                <strong>BaseFlow</strong> &copy; 2025<br>
+                Created by Matteo Artifoni and Ismail Barakat | Open source educational project.<br>
+                Thanks to <a href="https://shepherdjs.dev/" target="_blank" rel="noopener">Shepherd.js</a> and other open source libraries.<br>
+                <div id="github-links"></div>
+                    <a href="https://github.com/mat-teo/web-flowcharts" id="github-logo" target="_blank" rel="noopener" title="View on GitHub">
+                        <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" width="24" height="24">
+                    </a>
+                    <span id="contributors"></span>
+                </div>
+                <script>
+                // fetch contributors from GitHub API and display their avatars
+                fetch('https://api.github.com/repos/mat-teo/web-flowcharts/contributors')
+                  .then(response => response.json())
+                  .then(contributors => {
+                    const container = document.getElementById('contributors');
+                    contributors.forEach(user => {
+                      const a = document.createElement('a');
+                      a.href = user.html_url;
+                      a.target = '_blank';
+                      a.rel = 'noopener';
+                      a.title = user.login;
+                      a.style.marginRight = '4px';
+                      const img = document.createElement('img');
+                      img.src = user.avatar_url + '&s=24';
+                      img.alt = user.login;
+                      img.width = 24;
+                      img.height = 24;
+                      img.style.verticalAlign = 'middle';
+                      img.style.borderRadius = '50%';
+                      img.style.background = 'transparent';
+                      a.appendChild(img);
+                      container.appendChild(a);
+                    });
+                  })
+                  .catch(() => {});
+                </script>
+            </div>
+        </footer>
+        
+        <script src="script.js"></script>
+        <script src="js/execute.js"></script>
+        <script src="js/saveOpen.js"></script>
+        <script src="js/pythonTranslation.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js/dist/css/shepherd.css" />
+        <script src="https://cdn.jsdelivr.net/npm/shepherd.js/dist/js/shepherd.min.js"></script>
+        <script src="js/tutorial.js"></script>
+    </body>
+</html>
