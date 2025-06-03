@@ -68,6 +68,7 @@
    // Nasconde la finestra popup utilizzata per selezionare il tipo di nodo da inserire.
   function chiudiPopup() {
     document.getElementById("popup-window").classList.remove("active");
+    document.getElementById("overlay").classList.remove("active");
   }
 
   /**
@@ -151,6 +152,7 @@ function drawLine(x1, y1, x2, y2, salva, fromNodeIndex, toNodeIndex, arrowType) 
       if (isPointNearLine(clickX, clickY, freccia.inzioX, freccia.inzioY, freccia.fineX, freccia.fineY, 8)) {
         console.log("Hai cliccato la freccia", freccia.id);
         document.getElementById("popup-window").classList.add("active"); // Mostra il popup
+        document.getElementById("overlay").classList.add("active");
         frecceSelected = freccia.id; // Memorizza l'ID della freccia
         return;
       }
@@ -893,6 +895,7 @@ function inserisciNodo(tipo) {
         // Apre il popup di modifica solo per nodi che non siano 'start' o 'end'
         if (flow.nodes[i].type != "start" && flow.nodes[i].type != "end") {
           document.getElementById("edit-node-popup").classList.add("active");
+          document.getElementById("overlay").classList.add("active");
           document.getElementById("edit-node-title").innerHTML = "Edit " + flow.nodes[i].type +" node"
           document.getElementById("edit-node-input").value = flow.nodes[i].info || "";
         }
@@ -1412,6 +1415,7 @@ function calcoloY(nodiVisualArray) {
    */
   function chiudiEditPopup() {
     document.getElementById("edit-node-popup").classList.remove("active");
+    document.getElementById("overlay").classList.remove("active");
   }
 
   /**

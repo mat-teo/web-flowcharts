@@ -283,6 +283,10 @@ async function executeNode(node,currentNode,variables){
                 console.log("Assign: " + node.info);
                 printMessage("Assign: " + node.info)
                 let assignParts = node.info.split("=");
+                if(assignParts.length != 2){
+                  throwError("In node " + currentNode +": wrong assign syntax. Use [Variable] = [Value]")
+                  return null;
+                }
                 let varName = assignParts[0].trim();
                 let exp = assignParts[1].trim();
 

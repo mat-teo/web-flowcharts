@@ -2,17 +2,21 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
   font-family: Arial, sans-serif;
   background-color: #f4f4f9;
   color: #333;
   box-sizing: border-box;
+  /* Rimuovi overflow: hidden qui */
 }
+
 #canvas-container {
     flex-grow: 1; /* Permette al contenitore del canvas di espandersi orizzontalmente */
     position: relative; /* Importante per il corretto posizionamento dei popup al suo interno */
     /* Potresti anche voler aggiungere per sicurezza, anche se flex-grow:1 dovrebbe bastare: */
     width: 100%; /* O un min-width: 0; in alcuni casi complessi di flexbox */
-    height: 100%;
+    min-height: 0;
     overflow: auto; /* Molto importante: aggiunge le barre di scorrimento quando il contenuto (il canvas) è più grande */
     border: 1px solid #ccc; /* Opzionale: per vedere i bordi del contenitore scrollabile */
 }
@@ -81,6 +85,7 @@ canvas {
   flex: 1;
   overflow: hidden;
   min-width: 0;
+  height: 100%;
 }
 
 #sidebar {
@@ -804,20 +809,17 @@ th {
 
 #credits-section {
   flex-shrink: 0;
-  order: 2;
-  position: relative;
-  z-index: 1;
-}
-#credits-section {
   width: 100%;
-  background: #6200ea; /* viola pieno */
+  margin-top: auto;
+  background: #6200ea;
   color: #fff;
   border-top: 2px solid #6200ea;
-  padding: 1.2rem 0 1.2rem 0;
+  padding: 1.2rem 0;
   text-align: center;
   font-size: 1rem;
-  margin-top: auto;
   box-shadow: 0 -2px 8px rgba(98,0,234,0.04);
+  z-index: 1;
+  text-align: center;
 }
 
 #credits-section strong {
@@ -844,18 +846,11 @@ th {
   font-size: 0.95em;
 }
 /* Permetti lo scroll verticale globale per vedere il #credits-section */
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f9;
-  color: #333;
-  box-sizing: border-box;
-  /* Rimuovi overflow: hidden qui */
+
+
+#container{
+  flex: 1;
 }
-
-
 /* Il main non deve bloccare lo scroll globale */
 #main {
   overflow: visible;
