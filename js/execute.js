@@ -1,13 +1,4 @@
 /*
-this script is used to execute the flow:
- - the flow is stored in a json object
- - it's a map of node where each one is a block that points to the next one
- - conditions are special nodes that contains 2 different next nodes (the first one for true, the second for false)
- - the last node doesn't aim to any other node
- - every types of nodes has its own function to execute (assign, print, input, if...)
- - the json contains also all the variables declared from the user in the sidebar
-
- json structure example:
  {
   "nodes": [
     { "type": "start", "info": "", "next": "1" },
@@ -18,13 +9,13 @@ this script is used to execute the flow:
     { "type": "print", "info": "'can't divide by 0'", "next": "6" },
     { "type": "end", "info": "", "next": "" }
   ],
-    "variables": [
-    {"name": "x", type": "int", "value": 0},
-    {"name": "y", "type": "int", "value": 0}
-    ]
-}
+  "variables": [
+    {"name": "x", "type": "int", "value": 0},
+ {"name": "y", "type": "int", "value": 0}
+ ]
+ }
 */
-let currentNode = "0"; // start from the first node
+let currentNode = "0"; // inizia dal primo nodo
 function run(){
     document.getElementById('console-popup').classList.add('active');
     document.getElementById('overlay').classList.add('active');
@@ -36,9 +27,9 @@ function closeConsole() {
 }
 
 function resetFlow() {
-    currentNode = "0"; // Reset to the first node
+    currentNode = "0"; // Reimposta al primo nodo
     const consoleOutput = document.getElementById('console-output');
-    printMessage("Flow resetted. Ready to execute again.");
+    printMessage("Flow resetted. Ready to execute again."); // Flusso resettato. Pronto per essere eseguito di nuovo. (Nota: printMessage già gestisce l'output, questo commento traduce il messaggio originale se fosse stato un commento a sé)
     const input = document.getElementById('console-input')
     const btn = document.getElementById('console-send')
     input.classList.remove('active');
@@ -46,7 +37,7 @@ function resetFlow() {
 
 async function executeStep(){
   if(currentNode== null){
-    currentNode = "0"; // Reset to the first node if currentNode is null
+    currentNode = "0"; // Reimposta al primo nodo se currentNode è nullo
   }
   const node = flow.nodes[parseInt(currentNode)];
   currentNode = await executeNode(node,currentNode,flow.variables);
@@ -55,7 +46,7 @@ async function executeStep(){
 async function executeFlow(json){
     console.log(json)
     if(currentNode== null){
-      currentNode = "0"; // Reset to the first node if currentNode is null
+      currentNode = "0"; // Reimposta al primo nodo se currentNode è nullo
     }
     let variables = json.variables;
     while(currentNode != null){
@@ -70,7 +61,7 @@ function printMessage(msg){
     const messageElement = document.createElement('p');
     messageElement.textContent = "> " +  msg;
     consoleOutput.appendChild(messageElement);
-    consoleOutput.scrollTop = consoleOutput.scrollHeight; // Scroll to the bottom
+    consoleOutput.scrollTop = consoleOutput.scrollHeight; // Scorre fino in fondo
 }
 
 function throwError(msg){
@@ -79,28 +70,28 @@ function throwError(msg){
     errorElement.textContent = "> Error: " + msg;
     errorElement.classList.add('error');
     consoleOutput.appendChild(errorElement);
-    consoleOutput.scrollTop = consoleOutput.scrollHeight; // Scroll to the bottom
-    currentNode = "0"; // Reset to the first node on error
+    consoleOutput.scrollTop = consoleOutput.scrollHeight; // Scorre fino in fondo
+    currentNode = "0"; // Reimposta al primo nodo in caso di errore
 }
 
 function clearConsole() {
     const consoleOutput = document.getElementById('console-output');
-    consoleOutput.innerHTML = ''; // Clear the console output
-    printMessage("Console cleared.");
+    consoleOutput.innerHTML = ''; // Pulisce l'output della console
+    printMessage("Console cleared."); // Console pulita
 }
 
 async function executeNode(node,currentNode,variables){
   if(node.type != "start" && node.type != "end" && node.info == "") {
-    throwError("Node " + currentNode + " is empty. Please check your flow.");
+    throwError("Node " + currentNode + " is empty. Please check your flow."); // Il nodo è vuoto. Controlla il tuo flusso. (Nota: throwError già gestisce l'output)
     return null;
   }
   switch(node.type){
-            case "start":       // START NODE
+            case "start":       // NODO START
                 console.log("Start\n");
                 printMessage("Start");
                 currentNode = node.next;
                 break;
-            case "print": // PRINT NODE
+            case "print": // NODO PRINT
                 string="";
                 parts = splitStrings(node.info);
                 for (let i = 0; i < parts.length; i++) {
@@ -172,7 +163,7 @@ async function executeNode(node,currentNode,variables){
                 printMessage(string);
                 currentNode = node.next;
                 break; 
-              case "if": // IF NODE
+              case "if": // NODO IF
                 let condition = node.info;
                 console.log("If: " + condition);
                 printMessage("If: " + condition);
@@ -186,42 +177,42 @@ async function executeNode(node,currentNode,variables){
                     printMessage("If: " + condition + " is false");
                     currentNode =  node.next.false;
                 }else{
-                  return null; // If the condition is not valid, return null
+                  return null;
                 }
                 break;
-              case "while": // WHILE NODE
+              case "while": // NODO WHILE
                 let whileCondition = node.info;
                 console.log("While: " + whileCondition);
                 printMessage("While: " + whileCondition);
                 if(checkCondition(whileCondition, variables) == true){
                     console.log("While: " + whileCondition + " is true");
                     printMessage("While: " + whileCondition + " is true");
-                    currentNode = node.next.true; // Go to the true branch
+                    currentNode = node.next.true; // Vai al ramo true
                 }else if(checkCondition(whileCondition, variables) == false){
                     console.log("While: " + whileCondition + " is false");
                     printMessage("While: " + whileCondition + " is false");
-                    currentNode = node.next.false; // Go to the false branch
+                    currentNode = node.next.false; // Vai al ramo false
                 }else{
-                    return null; // If the condition is not valid, return null
+                    return null; 
                 }
                 break;
-              case "do": // DO NODE
+              case "do": // NODO DO
                 let doCondition = node.info;
                 console.log("Do: " + doCondition);
                 printMessage("Do: " + doCondition);
                 if(checkCondition(doCondition, variables) == true){
                     console.log("Do: " + doCondition + " is true");
                     printMessage("Do: " + doCondition + " is true");
-                    currentNode = node.next.true; // Go to the true branch
+                    currentNode = node.next.true; // Vai al ramo true
                 }else if (checkCondition(doCondition, variables) == false){
                     console.log("Do: " + doCondition + " is false");
                     printMessage("Do: " + doCondition + " is false");
-                    currentNode = node.next.false; // Go to the false branch
+                    currentNode = node.next.false; // Vai al ramo false
                 }else{
-                  return null; // If the condition is not valid, return null
+                  return null;
                 }
                 break;
-              case "for": // FOR NODE
+              case "for": // NODO FOR
                 let forParts = node.info.split(";");
                 if (forParts.length !== 3) {
                     throwError("Invalid for loop syntax: " + node.info);
@@ -237,10 +228,10 @@ async function executeNode(node,currentNode,variables){
                     throwError("Invalid initialization syntax: " + init);
                     return null;
                 }
-                // Execute initialization
+                // Esegui inizializzazione
                 variables.forEach(v => {
-                  // Replace variable names in the expression with their values
-                  // Use word boundaries to avoid partial replacements
+                  // Sostituisci i nomi delle variabili nell'espressione con i loro valori
+            
                   initParts[1] = initParts[1].replace(new RegExp(`\\b${v.name}\\b`, 'g'), v.value.toString());
                 });
                 getVariable(init[0],variables).value = eval(initParts[1]);
@@ -252,15 +243,15 @@ async function executeNode(node,currentNode,variables){
                 initParts[1] = eval(initParts[1]).toString()
                 initParts[1] += "+"+increment;
                 flow.nodes[parseInt(currentNode)].info = initParts[0] + "=" + initParts[1] + ";" + forcondition + ";" + increment;
-                // Check condition
+                // Controlla condizione
                 if (checkCondition(forcondition, variables) == true) {
                     console.log("For Condition: " + forcondition + " is true");
                     printMessage("For Condition: " + forcondition + " is true");
-                    currentNode = node.next.true; // Go to the true branch
+                    currentNode = node.next.true; 
                 } else if(checkCondition(forcondition, variables) == false) {
                     console.log("For Condition: " + forcondition + " is false");
                     printMessage("For Condition: " + forcondition + " is false");
-                    currentNode = node.next.false; // Go to the false branch
+                    currentNode = node.next.false; 
                 }else{
                   return null;
                 }
@@ -268,7 +259,7 @@ async function executeNode(node,currentNode,variables){
                 
                                 
                 break;
-              case "input": //INPUT NODE
+              case "input": //NODO INPUT
                 console.log("Input: " + node.info);
                 printMessage("Input: " + node.info);
                 if (!existVariable(node.info,variables)) {
@@ -279,7 +270,7 @@ async function executeNode(node,currentNode,variables){
                 currentNode = node.next;  
                 break;
 
-              case "assign": // ASSIGN NODE
+              case "assign": // NODO ASSIGN
                 console.log("Assign: " + node.info);
                 printMessage("Assign: " + node.info)
                 let assignParts = node.info.split("=");
@@ -291,8 +282,8 @@ async function executeNode(node,currentNode,variables){
                 let exp = assignParts[1].trim();
 
                 variables.forEach(v => {
-                  // Replace variable names in the expression with their values
-                  // Use word boundaries to avoid partial replacements
+                  // Sostituisci i nomi delle variabili nell'espressione con i loro valori
+                  // Usa i confini delle parole per evitare sostituzioni parziali
                   exp = exp.replace(new RegExp(`\\b${v.name}\\b`, 'g'), v.value.toString());
                 });
                 if(!existVariable(varName,variables)){
@@ -307,7 +298,7 @@ async function executeNode(node,currentNode,variables){
                 currentNode = node.next;
                 break;
 
-              case "end": // END NODE
+              case "end": // NODO END
                 console.log("End\n");
                 printMessage("End.");
                 currentNode = node.next;
@@ -330,7 +321,11 @@ function checkCondition(condition, variables) {
                   throwError(variable + " has not been declared.")
                   return {};
                 }
-                expression += v ? v.value.toString() : variable;
+                if (v) {
+                    expression += v.value.toString();
+                } else {
+                    expression += variable;
+                }
                 variable = "";
             }
             continue;
@@ -343,7 +338,11 @@ function checkCondition(condition, variables) {
                   throwError(variable + " has not been declared.")
                   return {};
                 }
-                expression += v ? v.value.toString() : variable;
+                if (v) {
+                    expression += v.value.toString();
+                } else {
+                    expression += variable;
+                }
                 variable = "";
             }
             expression += condition[j];
@@ -357,7 +356,11 @@ function checkCondition(condition, variables) {
                 throwError(variable + " has not been declared.")
                 return {};
             }
-            expression += v ? v.value.toString() : variable;
+            if (v) {
+                expression += v.value.toString();
+            } else {
+                expression += variable;
+            }
             isVar = false;
             variable = "";
         }
@@ -442,7 +445,7 @@ function splitStrings(input) {
 }
 
 async function inputVariable(name,type) {
- // const input = prompt(`Enter a value for ${name} (${type}):`);
+ // const input = prompt(`Inserisci un valore per ${name} (${type}):`); //Riga di codice commentata per l'input tramite prompt
   const input = await askUserInput();
   const feedback = () => {
       document.getElementById('console-input').classList.add('input-error');

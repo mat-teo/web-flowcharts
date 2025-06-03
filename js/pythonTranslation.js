@@ -11,7 +11,7 @@ function openPythonPopup(){
     popup.classList.add('active');
     document.getElementById('overlay').classList.add('active');
     const codeContainer = document.getElementById('python-code');
-    codeContainer.innerHTML = ''; // Clear previous content
+    codeContainer.innerHTML = '';
     translateFlow();
     const hasCode = codeLines.some(line => line.trim() !== '');
      const now = new Date();
